@@ -1,0 +1,6 @@
+{
+  "name": "SIGED - Motor de Inteligencia Procesal Misiones",
+  "description": "Motor de inteligencia procesal y gestión de expedientes del Poder Judicial de Misiones (SIGED) con control multiusuario, cálculo de plazos en días hábiles y notificaciones automatizadas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
