@@ -35,7 +35,7 @@ let notificacionesPushStore = [...INITIAL_NOTIFICACIONES_PUSH];
 let historialSyncStore = [...INITIAL_REGISTROS_SINCRONIZACION];
 
 // 1. Core Endpoint for SIGED Intelligence Processing
-app.post('/api/procesar-siged', async (req, res) => {
+app.post(['/api/procesar-siged', '/procesar-siged'], async (req, res) => {
   try {
     const { abogado_autenticado, abogado_id, nombre, matricula, rol, expediente, texto_actuacion, fecha_notificacion } = req.body;
 
@@ -70,12 +70,12 @@ app.post('/api/procesar-siged', async (req, res) => {
 });
 
 // 2. Abogados del Estudio
-app.get('/api/abogados', (req, res) => {
+app.get(['/api/abogados', '/abogados'], (req, res) => {
   res.json(abogadosStore);
 });
 
 // Autenticación: Registro
-app.post('/api/auth/register', (req, res) => {
+app.post(['/api/auth/register', '/auth/register'], (req, res) => {
   const { nombre, email, password, matricula, rol, telefono, usuarioSiged, claveSiged } = req.body;
 
   if (!nombre || !email || !password || !matricula) {
@@ -112,7 +112,7 @@ app.post('/api/auth/register', (req, res) => {
 });
 
 // Autenticación: Login
-app.post('/api/auth/login', (req, res) => {
+app.post(['/api/auth/login', '/auth/login'], (req, res) => {
   const { email, password } = req.body;
 
   const abogado = abogadosStore.find((a) => a.email.toLowerCase() === email.toLowerCase());
@@ -128,7 +128,7 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // Actualizar credenciales SIGED
-app.post('/api/siged/credenciales', (req, res) => {
+app.post(['/api/siged/credenciales', '/siged/credenciales'], (req, res) => {
   const { abogado_id, usuarioSiged, claveSiged, pinCertificadoDigital, sincronizacionAutomatica, frecuenciaMinutos, notificacionesPushWeb } = req.body;
   const index = abogadosStore.findIndex((a) => a.id === abogado_id);
   
@@ -155,7 +155,7 @@ app.post('/api/siged/credenciales', (req, res) => {
 });
 
 // 3. Expedientes del Estudio
-app.get('/api/expedientes', (req, res) => {
+app.get(['/api/expedientes', '/expedientes'], (req, res) => {
   const abogadoId = req.query.abogado_id as string;
   if (!abogadoId) {
     return res.json(expedientesStore);
@@ -177,7 +177,7 @@ app.get('/api/expedientes', (req, res) => {
 });
 
 // Actualizar autorizaciones
-app.post('/api/expedientes/autorizaciones', (req, res) => {
+app.post(['/api/expedientes/autorizaciones', '/expedientes/autorizaciones'], (req, res) => {
   const { expediente_id, abogados_autorizados } = req.body;
   const expIndex = expedientesStore.findIndex((e) => e.id === expediente_id);
 
