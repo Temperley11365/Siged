@@ -145,8 +145,8 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 bg-slate-950 px-3.5 py-2 rounded border border-slate-800 text-xs shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center space-x-2 bg-slate-950 px-3 py-2 rounded border border-slate-800 text-xs shrink-0">
               <span className="text-slate-400 font-mono text-[10px] uppercase tracking-wider">Causas Accesibles:</span>
               <span className="font-bold text-blue-400 font-mono text-sm">{expedientesFiltrados.length}</span>
             </div>
@@ -154,7 +154,7 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
             {onAbrirAsociadosModal && (
               <button
                 onClick={() => onAbrirAsociadosModal()}
-                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 rounded text-xs font-bold uppercase tracking-wider transition-colors flex items-center space-x-1.5 shadow-md shrink-0"
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 rounded text-xs font-bold uppercase tracking-wider transition-colors flex items-center space-x-1.5 shadow-md shrink-0"
               >
                 <Users className="w-4 h-4 text-emerald-400" />
                 <span>Asignar Asociados</span>
@@ -163,7 +163,7 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
 
             <button
               onClick={() => setIsCreandoExpte(true)}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors flex items-center space-x-1.5 shadow-md shrink-0"
+              className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold uppercase tracking-wider transition-colors flex items-center space-x-1.5 shadow-md shrink-0"
             >
               <PlusCircle className="w-4 h-4" />
               <span>Alta de Causa</span>

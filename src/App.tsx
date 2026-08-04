@@ -70,6 +70,24 @@ export default function App() {
   const [activeToastPopups, setActiveToastPopups] = useState<NotificacionPushSiged[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // Dark / Light Theme State
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('siged_theme') as 'dark' | 'light') || 'dark';
+  });
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.body.classList.add('light-theme');
+    } else {
+      document.body.classList.remove('light-theme');
+    }
+    localStorage.setItem('siged_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   // OIDC Session & Modals
   const [oidcSession, setOidcSession] = useState<OidcSessionState>(DEFAULT_OIDC_SESSION);
   const [isOidcModalOpen, setIsOidcModalOpen] = useState(false);
@@ -355,6 +373,8 @@ export default function App() {
         onMarcarNotificacionLeida={handleMarcarNotificacionLeida}
         onSincronizarSiged={handleSincronizarSiged}
         isSyncing={isSyncing}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main View Area */}

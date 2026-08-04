@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Zap, FileText, Scale, Calendar, CheckSquare, Folder, Code, Key, UserCheck, 
   ShieldCheck, ChevronDown, Bell, RefreshCw, Settings, Check, ExternalLink, Cpu, ShieldAlert,
-  Users, UserPlus, LogIn, LogOut, Shield
+  Users, UserPlus, LogIn, LogOut, Shield, Sun, Moon
 } from 'lucide-react';
 import { Abogado, OidcSessionState, NotificacionPushSiged } from '../types';
 
@@ -29,6 +29,8 @@ interface NavbarProps {
   onMarcarNotificacionLeida: (id: string) => void;
   onSincronizarSiged: () => void;
   isSyncing: boolean;
+  theme?: 'dark' | 'light';
+  onToggleTheme?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -44,6 +46,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onMarcarNotificacionLeida,
   onSincronizarSiged,
   isSyncing,
+  theme = 'dark',
+  onToggleTheme,
 }) => {
   const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
@@ -100,6 +104,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </button>
 
+            {/* Theme Toggle Button (Dark / Light) */}
+            {onToggleTheme && (
+              <button
+                onClick={onToggleTheme}
+                className="p-2 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-slate-300 transition-colors"
+                title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 text-amber-400" />
+                ) : (
+                  <Moon className="w-4 h-4 text-indigo-400" />
+                )}
+              </button>
+            )}
+
             {/* Push Notifications Bell Dropdown */}
             <div className="relative">
               <button
@@ -120,7 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               {/* Notification Drawer */}
               {isNotifDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-1.5rem)] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
                   <div className="bg-slate-950 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Bell className="w-4 h-4 text-amber-400" />
@@ -223,7 +242,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               {/* User Profile Menu Dropdown */}
               {isUserDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
                   <div className="p-4 bg-slate-950 border-b border-slate-800 space-y-1">
                     <strong className="text-slate-100 block text-xs">{abogadoActual.nombre}</strong>
                     <span className="text-[10px] text-slate-400 block">{abogadoActual.email}</span>

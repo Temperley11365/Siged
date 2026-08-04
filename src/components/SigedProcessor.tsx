@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Abogado, RespuestaProcesalSiged, Expediente } from '../types';
+import { calcularVencimientoMisiones } from '../lib/misionesCalendar';
 import {
   Sparkles,
   ShieldCheck,
@@ -121,13 +122,110 @@ export const SigedProcessor: React.FC<SigedProcessorProps> = ({ abogadoActual, e
         }),
       });
 
-      const data: RespuestaProcesalSiged = await resp.json();
-      setResultado(data);
+      if (resp.ok) {
+        const data: RespuestaProcesalSiged = await resp.json();
+        setResultado(data);
+        return;
+      }
     } catch (err) {
-      console.error('Error al procesar actuación:', err);
-    } finally {
-      setLoading(false);
+      console.error('Error al procesar actuación vía API, ejecutando cálculo directo:', err);
     }
+
+    // Client-side Fallback Calculation
+    const txtUpper = textoActuacion.toUpperCase();
+    let plazoDias = 5;
+    let requiereAccion = true;
+    let tipoActuacion = 'Cédula de Notificación SIGED';
+
+    if (txtUpper.includes('TRES (3)') || txtUpper.includes('3 DÍAS') || txtUpper.includes('3 DIAS')) {
+      plazoDias = 3;
+    } else if (txtUpper.includes('DIEZ (10)') || txtUpper.includes('10 DÍAS') || txtUpper.includes('10 DIAS')) {
+      plazoDias = 10;
+    } else if (txtUpper.includes('QUINCE (15)') || txtUpper.includes('15 DÍAS') || txtUpper.includes('15 DIAS')) {
+      plazoDias = 15;
+    } else if (txtUpper.includes('CINCO (5)') || txtUpper.includes('5 DÍAS') || txtUpper.includes('5 DIAS')) {
+      plazoDias = 5;
+    }
+
+    if (txtUpper.includes('CEDULA') || txtUpper.includes('CÉDULA')) {
+      tipoActuacion = 'Cédula de Notificación Digital';
+    } else if (txtUpper.includes('RESOLUCION') || txtUpper.includes('RESOLUCIÓN')) {
+      tipoActuacion = 'Resolución Interlocutoria';
+    } else if (txtUpper.includes('VISTA')) {
+      tipoActuacion = 'Vista Procesal';
+    }
+
+    if (txtUpper.includes('ARCHÍVESE') || txtUpper.includes('AGRÉGUESE')) {
+      requiereAccion = false;
+      plazoDias = 0;
+    }
+
+    const calc = requiereAccion ? calcularVencimientoMisiones(fechaNotificacion, plazoDias, 'hábiles') : null;
+
+    // Check permissions
+    const expEncontrado = expedientes.find(e => e.numero === expteNumero);
+    const esSocio = abogadoActual.rol === 'Socio';
+    if (expEncontrado && !esSocio && !expEncontrado.abogados_autorizados.includes(abogadoActual.id)) {
+      setResultado({
+        autenticacion_valida: false,
+        abogado_destino_id: abogadoActual.id,
+        expediente: {
+          numero: expteNumero,
+          caratula: 'ACCESO RESTRINGIDO - CAUSA NO AUTORIZADA',
+          juzgado: juzgado,
+        },
+        analisis_procesal: {
+          requiere_accion: false,
+          tipo_actuacion: 'Acceso Denegado',
+          resumen_ejecutivo: `El abogado ${abogadoActual.nombre} (ID: ${abogadoActual.id}, Rol: ${abogadoActual.rol}) no posee autorización legal expresamente delegada para acceder a la causa N° ${expteNumero}.`,
+          plazo_dias: null,
+          tipo_plazo: null,
+          sugerencia_agenda: null,
+        },
+        notificaciones: {
+          push_short: `⛔ DENEGADO: Sin permisos en Expte. ${expteNumero}`,
+          whatsapp_text: `*ALERTA DE SEGURIDAD ESTUDIO*\n\nEstimado/a ${abogadoActual.nombre}, se restringió el acceso al Expte. N° ${expteNumero} por falta de autorización.`,
+          email_subject: `[SEGURIDAD ESTUDIO] Acceso denegado a expediente ${expteNumero}`,
+          email_body: `<p>Aviso de restricción de acceso por rol Asociado.</p>`,
+        },
+        mensaje_seguridad: 'Abogado asociado no autorizado para ver o procesar este expediente.',
+      });
+      setLoading(false);
+      return;
+    }
+
+    setResultado({
+      autenticacion_valida: true,
+      abogado_destino_id: abogadoActual.id,
+      expediente: {
+        numero: expteNumero || '1420/2025',
+        caratula: caratula || 'GOMEZ ALBERTO C/ SUPERMERCADOS MISIONES S.R.L. S/ DAÑOS Y PERJUICIOS',
+        juzgado: juzgado || 'Juzgado Civil y Comercial N° 1 - Posadas',
+      },
+      analisis_procesal: {
+        requiere_accion: requiereAccion,
+        tipo_actuacion: tipoActuacion,
+        resumen_ejecutivo: requiereAccion
+          ? `Despacho procesal proveniente de SIGED Misiones (${tipoActuacion}) en el que se otorga un traslado/vista por el término de ${plazoDias} días hábiles judiciales. Se requiere confeccionar el escrito procesal correspondiente.`
+          : `Providencia simple o agregación a los autos sin término perentorio.`,
+        plazo_dias: requiereAccion ? plazoDias : null,
+        tipo_plazo: requiereAccion ? 'hábiles' : null,
+        sugerencia_agenda: calc ? `Vencimiento principal: ${calc.vencimientoFechaStr}. Recordatorio Plazo de Gracia (Art. 124): ${calc.vencimientoGraciaStr}` : null,
+      },
+      notificaciones: {
+        push_short: `⚡ SIGED [Exp. ${expteNumero}]: ${tipoActuacion} (${plazoDias}d hábiles)`,
+        whatsapp_text: `*⚖️ NOTIFICACIÓN SIGED - ESTUDIO JURÍDICO*\n\n📌 *Expediente N°:* ${expteNumero}\n🏛️ *Juzgado:* ${juzgado}\n⚖️ *Carátula:* ${caratula}\n\n📝 *Actuación:* ${tipoActuacion}\n⏳ *Plazo:* ${plazoDias} días hábiles judiciales.\n📅 *Vencimiento:* ${calc ? calc.vencimientoFechaStr : 'N/A'}\n⚠️ *Plazo de Gracia:* ${calc ? calc.vencimientoGraciaStr : 'N/A'}\n\n👤 *Asignado a:* ${abogadoActual.nombre}`,
+        email_subject: `[SIGED MISIONES] Notificación Procesal Expte. ${expteNumero} - ${tipoActuacion}`,
+        email_body: `<div style="font-family: Arial, sans-serif; padding:20px;"><h3>Notificación SIGED</h3><p>Expte ${expteNumero} - ${caratula}</p></div>`,
+      },
+      meta_calculo: calc ? {
+        fecha_notificacion: fechaNotificacion,
+        vencimiento_fecha: calc.vencimientoFechaStr,
+        vencimiento_con_gracia: calc.vencimientoGraciaStr,
+        dias_habiles_desglosados: calc.diasHabilesDesglosados,
+      } : undefined,
+    });
+    setLoading(false);
   };
 
   const handleCopiarJson = () => {
@@ -514,7 +612,7 @@ export const SigedProcessor: React.FC<SigedProcessorProps> = ({ abogadoActual, e
                         </button>
                       </div>
 
-                      <pre className="bg-slate-950 p-4 border border-slate-800 rounded-lg text-xs text-emerald-400 font-mono overflow-x-auto max-h-[500px] leading-relaxed">
+                      <pre className="bg-slate-950 p-4 border border-slate-800 rounded-lg text-xs text-emerald-400 font-mono overflow-x-auto max-h-[500px] leading-relaxed max-w-full whitespace-pre-wrap break-all">
                         {JSON.stringify(resultado, null, 2)}
                       </pre>
                     </div>

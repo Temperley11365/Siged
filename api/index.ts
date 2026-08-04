@@ -11,6 +11,22 @@ import {
 const app = express();
 app.use(express.json());
 
+// Enable CORS and normalize Vercel serverless URL paths
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // Normalize URL prefix for Vercel rewrites
+  if (!req.url.startsWith('/api')) {
+    req.url = '/api' + req.url;
+  }
+  next();
+});
+
 // Memory store for runtime serverless execution
 let abogadosStore = [...INITIAL_ABOGADOS];
 let expedientesStore = [...INITIAL_EXPEDIENTES];
