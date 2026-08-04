@@ -1,3 +1,5 @@
+import { DiaInhabil } from '../types';
+
 /**
  * Calculador de Días Hábiles Judiciales - Poder Judicial de Misiones (CPCCyM)
  */
@@ -15,8 +17,8 @@ export const HOLIDAYS_MISIONES_2026 = [
   '2026-06-17', // Güemes
   '2026-06-20', // Belgrano / Bandera
   '2026-07-09', // Independencia
-  '2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16', '2026-07-17', // Feria Judicial de Invierno (ejemplo semana 1)
-  '2026-07-20', '2026-07-21', '2026-07-22', '2026-07-23', '2026-07-24', // Feria Judicial de Invierno (ejemplo semana 2)
+  '2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16', '2026-07-17', // Feria Judicial de Invierno
+  '2026-07-20', '2026-07-21', '2026-07-22', '2026-07-23', '2026-07-24', // Feria Judicial de Invierno
   '2026-08-17', // San Martín
   '2026-10-12', // Respeto a la Diversidad Cultural
   '2026-11-16', // Día del Empleado Judicial (Feriado Judicial Ley Misiones)
@@ -26,7 +28,7 @@ export const HOLIDAYS_MISIONES_2026 = [
   '2026-12-25', // Navidad
 ];
 
-export function isHabilJudicial(date: Date): boolean {
+export function isHabilJudicial(date: Date, customInhabiles: DiaInhabil[] = []): boolean {
   const dayOfWeek = date.getDay(); // 0: Sunday, 6: Saturday
   if (dayOfWeek === 0 || dayOfWeek === 6) return false;
 
@@ -36,6 +38,9 @@ export function isHabilJudicial(date: Date): boolean {
   const dateStr = `${yyyy}-${mm}-${dd}`;
 
   if (HOLIDAYS_MISIONES_2026.includes(dateStr)) return false;
+
+  // Check custom non-working days configured by the study
+  if (customInhabiles.some((inh) => inh.fecha === dateStr)) return false;
 
   return true;
 }
@@ -56,7 +61,8 @@ export function formatShortDate(date: Date): string {
 export function calcularVencimientoMisiones(
   fechaNotificacionStr: string,
   diasPlazo: number,
-  tipoPlazo: 'hábiles' | 'corridos' = 'hábiles'
+  tipoPlazo: 'hábiles' | 'corridos' = 'hábiles',
+  customInhabiles: DiaInhabil[] = []
 ): {
   vencimientoFecha: Date;
   vencimientoFechaStr: string;
@@ -71,7 +77,7 @@ export function calcularVencimientoMisiones(
   if (tipoPlazo === 'corridos') {
     curr.setDate(curr.getDate() + diasPlazo);
     // Si cae en inhábil, se prorroga al primer día hábil siguiente
-    while (!isHabilJudicial(curr)) {
+    while (!isHabilJudicial(curr, customInhabiles)) {
       curr.setDate(curr.getDate() + 1);
     }
   } else {
@@ -79,9 +85,9 @@ export function calcularVencimientoMisiones(
     let diasContados = 0;
     while (diasContados < diasPlazo) {
       curr.setDate(curr.getDate() + 1);
-      if (isHabilJudicial(curr)) {
+      if (isHabilJudicial(curr, customInhabiles)) {
         diasContados++;
-        desglosados.push(`${diasContados}° día: ${formatFechaEsp(curr)}`);
+        desglosados.push(`${diasContados}° día hábil: ${formatFechaEsp(curr)}`);
       }
     }
   }
@@ -89,12 +95,12 @@ export function calcularVencimientoMisiones(
   // Calcular las 2 primeras horas del día hábil posterior (Plazo de gracia Art. 124 CPCCM)
   const diaGracia = new Date(curr);
   diaGracia.setDate(diaGracia.getDate() + 1);
-  while (!isHabilJudicial(diaGracia)) {
+  while (!isHabilJudicial(diaGracia, customInhabiles)) {
     diaGracia.setDate(diaGracia.getDate() + 1);
   }
 
-  const vencimientoFechaStr = `${formatFechaEsp(curr)} (hasta las 24:00 hs)`;
-  const vencimientoGraciaStr = `${formatFechaEsp(diaGracia)} de 07:00 a 09:00 hs (Plazo de Gracia - Art. 124 CPCCM Misiones)`;
+  const vencimientoFechaStr = `${formatFechaEsp(curr)} (hasta 24:00 hs)`;
+  const vencimientoGraciaStr = `${formatFechaEsp(diaGracia)} de 07:00 a 09:00 hs (Plazo de Gracia - Art. 124 CPCCyM Misiones)`;
 
   return {
     vencimientoFecha: curr,

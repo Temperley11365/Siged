@@ -1,173 +1,318 @@
-import React from 'react';
-import { Abogado } from '../types';
-import { Scale, ShieldCheck, User, Sparkles, Calendar, FileText, Code2, Lock } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  Zap, FileText, Scale, Calendar, CheckSquare, Folder, Code, Key, UserCheck, 
+  ShieldCheck, ChevronDown, Bell, RefreshCw, Settings, Check, ExternalLink, Cpu, ShieldAlert,
+  Users, UserPlus, LogIn, LogOut, Shield
+} from 'lucide-react';
+import { Abogado, OidcSessionState, NotificacionPushSiged } from '../types';
+
+export type TabId = 
+  | 'motor' 
+  | 'expedientes' 
+  | 'pruebas' 
+  | 'audiencias' 
+  | 'tareas' 
+  | 'agenda' 
+  | 'documentos' 
+  | 'api_explorer';
 
 interface NavbarProps {
-  abogados: Abogado[];
+  activeTab: TabId;
+  onSelectTab: (tab: TabId) => void;
   abogadoActual: Abogado;
-  onSelectAbogado: (abogado: Abogado) => void;
-  tabActiva: string;
-  onSelectTab: (tab: string) => void;
+  onOpenOidcModal: () => void;
+  onOpenPerfilModal: () => void;
+  onOpenAuthModal: () => void;
+  onOpenAsociadosModal: () => void;
+  oidcSession: OidcSessionState;
+  notificacionesPush: NotificacionPushSiged[];
+  onMarcarNotificacionLeida: (id: string) => void;
+  onSincronizarSiged: () => void;
+  isSyncing: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  abogados,
-  abogadoActual,
-  onSelectAbogado,
-  tabActiva,
+  activeTab,
   onSelectTab,
+  abogadoActual,
+  onOpenOidcModal,
+  onOpenPerfilModal,
+  onOpenAuthModal,
+  onOpenAsociadosModal,
+  oidcSession,
+  notificacionesPush,
+  onMarcarNotificacionLeida,
+  onSincronizarSiged,
+  isSyncing,
 }) => {
+  const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+
+  const sinLeerCount = notificacionesPush.filter((n) => !n.leida).length;
+
+  const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
+    { id: 'motor', label: 'Motor SIGED', icon: <Zap className="w-4 h-4 text-amber-400" /> },
+    { id: 'expedientes', label: 'Expedientes', icon: <FileText className="w-4 h-4 text-blue-400" /> },
+    { id: 'pruebas', label: 'Pruebas', icon: <Scale className="w-4 h-4 text-emerald-400" /> },
+    { id: 'audiencias', label: 'Audiencias', icon: <Calendar className="w-4 h-4 text-purple-400" /> },
+    { id: 'tareas', label: 'Tareas', icon: <CheckSquare className="w-4 h-4 text-indigo-400" /> },
+    { id: 'agenda', label: 'Agenda & Plazos', icon: <Calendar className="w-4 h-4 text-amber-400" /> },
+    { id: 'documentos', label: 'Gestor & .docx', icon: <Folder className="w-4 h-4 text-cyan-400" /> },
+    { id: 'api_explorer', label: 'API Explorer', icon: <Code className="w-4 h-4 text-rose-400" /> },
+  ];
+
+  const handleNotificationClick = (notif: NotificacionPushSiged) => {
+    onMarcarNotificacionLeida(notif.id);
+    setIsNotifDropdownOpen(false);
+    onSelectTab('expedientes');
+  };
+
   return (
-    <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-700/80 text-slate-100 sticky top-0 z-40 shadow-xl">
+    <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 shadow-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo & Title */}
+          {/* Logo Brand */}
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onSelectTab('motor')}>
-            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-bold text-white shadow-md shadow-blue-900/30">
-              <Scale className="w-5 h-5 text-white" />
+            <div className="p-2 bg-blue-600/20 text-blue-400 border border-blue-500/40 rounded-xl shadow-inner">
+              <Scale className="w-5 h-5" />
             </div>
-            <div className="leading-tight">
-              <div className="flex items-center space-x-2">
-                <span className="font-bold tracking-tight uppercase text-base text-slate-100">
-                  SIGED <span className="text-blue-500 italic">Engine</span>
-                </span>
-                <span className="text-[9px] uppercase font-mono tracking-[0.15em] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                  v2.5
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-400 font-medium tracking-[0.2em] uppercase">
-                Inteligencia Procesal Unificada
-              </p>
+            <div>
+              <h1 className="text-sm font-bold tracking-tight text-white uppercase flex items-center space-x-1.5 font-sans">
+                <span>SIGED</span>
+                <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-mono font-normal">Misiones</span>
+              </h1>
+              <span className="text-[10px] text-slate-400 font-mono block">Sistema Jurídico Unificado</span>
             </div>
           </div>
 
-          {/* Nav Tabs */}
-          <nav className="hidden md:flex items-center space-x-1">
-            <button
-              id="nav-tab-motor"
-              onClick={() => onSelectTab('motor')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded text-xs font-bold uppercase tracking-wider transition-all ${
-                tabActiva === 'motor'
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/40 shadow-sm'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-              <span>Motor Procesal SIGED</span>
-            </button>
-
-            <button
-              id="nav-tab-expedientes"
-              onClick={() => onSelectTab('expedientes')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded text-xs font-bold uppercase tracking-wider transition-all ${
-                tabActiva === 'expedientes'
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/40 shadow-sm'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5 text-blue-400" />
-              <span>Gestión de Expedientes</span>
-            </button>
-
-            <button
-              id="nav-tab-calendario"
-              onClick={() => onSelectTab('calendario')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded text-xs font-bold uppercase tracking-wider transition-all ${
-                tabActiva === 'calendario'
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/40 shadow-sm'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5 text-blue-400" />
-              <span>Plazos Hábiles</span>
-            </button>
-
-            <button
-              id="nav-tab-api"
-              onClick={() => onSelectTab('api')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded text-xs font-bold uppercase tracking-wider transition-all ${
-                tabActiva === 'api'
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/40 shadow-sm'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <Code2 className="w-3.5 h-3.5 text-blue-400" />
-              <span>API JSON</span>
-            </button>
-          </nav>
-
-          {/* User Selector Dropdown & Security Context */}
+          {/* Top Actions: Sync Button, Push Bell & Lawyer Profile */}
           <div className="flex items-center space-x-3">
-            <div className="text-right hidden sm:block">
-              <div className="flex items-center space-x-1.5 justify-end">
-                <span className="text-xs font-bold text-slate-200">{abogadoActual.nombre}</span>
-              </div>
-              <p className="text-[10px] text-blue-400 uppercase tracking-wider font-bold">
-                Rol: {abogadoActual.rol} | Mat: {abogadoActual.matricula}
-              </p>
+            {/* Quick Sync SIGED Button */}
+            <button
+              onClick={onSincronizarSiged}
+              disabled={isSyncing}
+              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs font-mono font-bold text-slate-200 flex items-center space-x-2 transition-all shadow-sm"
+              title="Sincronizar expedientes y nuevos decretos con SIGED"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span className="hidden md:inline">
+                {isSyncing ? 'Sincronizando...' : 'Sincronizar SIGED'}
+              </span>
+            </button>
+
+            {/* Push Notifications Bell Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setIsNotifDropdownOpen(!isNotifDropdownOpen);
+                  setIsUserDropdownOpen(false);
+                }}
+                className="p-2 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-slate-300 transition-colors relative"
+                title="Notificaciones Push en tiempo real"
+              >
+                <Bell className="w-4 h-4" />
+                {sinLeerCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white font-mono text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                    {sinLeerCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Drawer */}
+              {isNotifDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
+                  <div className="bg-slate-950 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Bell className="w-4 h-4 text-amber-400" />
+                      <strong className="text-slate-100 uppercase text-[11px]">Notificaciones Push SIGED</strong>
+                    </div>
+                    <span className="text-[10px] bg-blue-600/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">
+                      {sinLeerCount} sin leer
+                    </span>
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-800/80">
+                    {notificacionesPush.length === 0 ? (
+                      <div className="p-6 text-center text-slate-500 text-xs">
+                        No hay notificaciones push registradas.
+                      </div>
+                    ) : (
+                      notificacionesPush.map((notif) => (
+                        <div
+                          key={notif.id}
+                          onClick={() => handleNotificationClick(notif)}
+                          className={`p-3 cursor-pointer transition-colors hover:bg-slate-800/60 flex items-start space-x-3 ${
+                            !notif.leida ? 'bg-blue-950/20' : 'opacity-80'
+                          }`}
+                        >
+                          <div className={`p-2 rounded-lg shrink-0 mt-0.5 ${
+                            notif.tipo === 'CEDULA'
+                              ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                              : notif.tipo === 'INTIMACION'
+                              ? 'bg-amber-600/20 text-amber-400 border border-amber-500/30'
+                              : 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30'
+                          }`}>
+                            <Zap className="w-3.5 h-3.5" />
+                          </div>
+
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-200 text-[11px] truncate">{notif.titulo}</span>
+                              <span className="text-[9px] text-slate-500">{notif.fecha.substring(11, 16)}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-300 leading-snug">{notif.mensaje}</p>
+                            <div className="text-[10px] text-blue-400 font-bold flex items-center space-x-1 pt-0.5">
+                              <span>Expte. {notif.expediente_numero}</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="bg-slate-950 px-4 py-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                    <button
+                      onClick={onSincronizarSiged}
+                      className="text-blue-400 hover:underline font-bold flex items-center space-x-1"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>Buscar Novedades</span>
+                    </button>
+                    <button
+                      onClick={onOpenPerfilModal}
+                      className="text-slate-400 hover:text-white"
+                    >
+                      Configurar Push
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="relative flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full border-2 border-blue-500 p-0.5 bg-slate-800 shrink-0">
-                <div className="w-full h-full rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-200">
-                  {abogadoActual.nombre.split(' ').map((n) => n[0]).filter((_, i) => i < 2).join('')}
-                </div>
-              </div>
-
-              <select
-                id="select-abogado-autenticado"
-                value={abogadoActual.id}
-                onChange={(e) => {
-                  const sel = abogados.find((a) => a.id === e.target.value);
-                  if (sel) onSelectAbogado(sel);
+            {/* Profile Dropdown Toggle */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setIsUserDropdownOpen(!isUserDropdownOpen);
+                  setIsNotifDropdownOpen(false);
                 }}
-                className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded p-1.5 focus:ring-1 focus:ring-blue-500 cursor-pointer font-mono"
+                className="bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl px-3 py-1.5 flex items-center space-x-3 transition-colors text-left"
               >
-                {abogados.map((abg) => (
-                  <option key={abg.id} value={abg.id}>
-                    {abg.nombre} ({abg.rol})
-                  </option>
-                ))}
-              </select>
+                {abogadoActual.avatarUrl && (
+                  <img
+                    src={abogadoActual.avatarUrl}
+                    alt={abogadoActual.nombre}
+                    className="w-8 h-8 rounded-full border border-blue-500/40 object-cover"
+                  />
+                )}
+                <div className="hidden sm:block">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-xs font-bold text-slate-100">{abogadoActual.nombre}</span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      {abogadoActual.rol}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1 text-[10px] font-mono text-emerald-400">
+                    <ShieldCheck className="w-3 h-3" />
+                    <span>SIGED {abogadoActual.credencialesSiged?.estadoConexion === 'Conectado' ? 'OK' : 'Sync'} • {abogadoActual.matricula}</span>
+                  </div>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+
+              {/* User Profile Menu Dropdown */}
+              {isUserDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden font-mono text-xs animate-in fade-in zoom-in-95 duration-150">
+                  <div className="p-4 bg-slate-950 border-b border-slate-800 space-y-1">
+                    <strong className="text-slate-100 block text-xs">{abogadoActual.nombre}</strong>
+                    <span className="text-[10px] text-slate-400 block">{abogadoActual.email}</span>
+                    <span className="text-[10px] text-blue-400 font-bold block">{abogadoActual.matricula}</span>
+                  </div>
+
+                  <div className="p-[6px] space-y-1">
+                    <button
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        onOpenAuthModal();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-slate-100 bg-blue-950/40 hover:bg-blue-900/40 border border-blue-500/30 flex items-center space-x-2.5 transition-colors"
+                    >
+                      <LogIn className="w-4 h-4 text-blue-400" />
+                      <div>
+                        <strong className="block text-xs">Iniciar Sesión / Registrarse</strong>
+                        <span className="text-[10px] text-blue-300">Acceder con usuario y clave</span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        onOpenAsociadosModal();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-800 flex items-center space-x-2.5 transition-colors"
+                    >
+                      <Users className="w-4 h-4 text-emerald-400" />
+                      <div>
+                        <strong className="block text-xs">Asignar Accesos a Asociados</strong>
+                        <span className="text-[10px] text-slate-400">Autorizar expedientes por abogado</span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        onOpenPerfilModal();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-800 flex items-center space-x-2.5 transition-colors"
+                    >
+                      <Key className="w-4 h-4 text-amber-400" />
+                      <div>
+                        <strong className="block text-xs">Credenciales & Sync SIGED</strong>
+                        <span className="text-[10px] text-slate-400">Usuario, clave y token digital</span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        onOpenOidcModal();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-800 flex items-center space-x-2.5 transition-colors"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-purple-400" />
+                      <div>
+                        <strong className="block text-xs">Autenticación Keycloak OIDC</strong>
+                        <span className="text-[10px] text-slate-400">IDP idm.jusmisiones.gov.ar</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Nav Tabs */}
-      <div className="md:hidden border-t border-slate-800 bg-slate-900 px-4 py-2 flex overflow-x-auto space-x-2">
-        <button
-          onClick={() => onSelectTab('motor')}
-          className={`px-3 py-1.5 text-xs rounded uppercase font-bold tracking-wider whitespace-nowrap ${
-            tabActiva === 'motor' ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40' : 'text-slate-400'
-          }`}
-        >
-          Motor SIGED
-        </button>
-        <button
-          onClick={() => onSelectTab('expedientes')}
-          className={`px-3 py-1.5 text-xs rounded uppercase font-bold tracking-wider whitespace-nowrap ${
-            tabActiva === 'expedientes' ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40' : 'text-slate-400'
-          }`}
-        >
-          Expedientes
-        </button>
-        <button
-          onClick={() => onSelectTab('calendario')}
-          className={`px-3 py-1.5 text-xs rounded uppercase font-bold tracking-wider whitespace-nowrap ${
-            tabActiva === 'calendario' ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40' : 'text-slate-400'
-          }`}
-        >
-          Calendario
-        </button>
-        <button
-          onClick={() => onSelectTab('api')}
-          className={`px-3 py-1.5 text-xs rounded uppercase font-bold tracking-wider whitespace-nowrap ${
-            tabActiva === 'api' ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40' : 'text-slate-400'
-          }`}
-        >
-          API JSON
-        </button>
+        {/* Horizontal Navigation Tabs */}
+        <nav className="flex space-x-1 overflow-x-auto pb-2 pt-1 border-t border-slate-900 text-xs font-mono scrollbar-none">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onSelectTab(tab.id)}
+                className={`px-3.5 py-2 rounded-lg font-bold transition-all flex items-center space-x-2 shrink-0 ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
     </header>
   );
