@@ -304,6 +304,43 @@ export interface PlantillaDocx {
 }
 
 // -------------------------------------------------------------
+// 8. Repositorio de Escritos & Guías de Pasos Procesales
+// -------------------------------------------------------------
+export interface PasoProcesalGuia {
+  id: string;
+  orden: number;
+  titulo: string;
+  descripcion: string;
+  diasEstimados?: number;
+  escritoRecomendadoId?: string;
+  escritoRecomendadoNombre?: string;
+  obligatorio?: boolean;
+}
+
+export interface ModeloEscritoRepositorio {
+  id: string;
+  titulo: string;
+  fuero: FueroJudicial | string;
+  tematica: string; // e.g. 'Daños y Perjuicios', 'Despido e Indemnización', 'Divorcio', 'Ejecución de Honorarios', 'Sucesión Ab Intestato'
+  tipoExpediente?: string; // e.g. 'Juicio Ordinario', 'Juicio Sumarísimo', 'Juicio Ejecutivo'
+  etapaProcesal: EtapaProcesal;
+  descripcion: string;
+  contenidoPlantilla: string;
+  pasosASeguir: PasoProcesalGuia[];
+  autor: string;
+  fechaCreacion: string;
+  etiquetas?: string[];
+  pdfSimuladoUrl?: string;
+}
+
+export interface ProgresoPasosExpediente {
+  expediente_id: string;
+  modelo_id: string;
+  pasosCompletadosIds: string[];
+  fechaUltimaActualizacion: string;
+}
+
+// -------------------------------------------------------------
 // Actuacion y Procesamiento SIGED AI
 // -------------------------------------------------------------
 export interface ActuacionSIGED {

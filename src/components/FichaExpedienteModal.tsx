@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  FileText, Users, DollarSign, Clock, Paperclip, ChevronRight, X, ShieldAlert, CheckCircle2, AlertCircle, Building, Landmark, Scale
+  FileText, Users, DollarSign, Clock, Paperclip, ChevronRight, X, ShieldAlert, CheckCircle2, AlertCircle, Building, Landmark, Scale,
+  BookOpen, CheckSquare, Copy, Plus, Edit3, Download, ArrowRight, Sparkles, Folder
 } from 'lucide-react';
-import { Expediente, DocumentoEstudio, PruebaExpediente, AudienciaExpediente } from '../types';
+import { Expediente, DocumentoEstudio, PruebaExpediente, AudienciaExpediente, ModeloEscritoRepositorio, ProgresoPasosExpediente } from '../types';
 
 interface FichaExpedienteModalProps {
   isOpen: boolean;
@@ -11,6 +12,11 @@ interface FichaExpedienteModalProps {
   documentos: DocumentoEstudio[];
   pruebas: PruebaExpediente[];
   audiencias: AudienciaExpediente[];
+  modelosRepositorio?: ModeloEscritoRepositorio[];
+  progresosPasos?: ProgresoPasosExpediente[];
+  onTogglePasoCompletado?: (expedienteId: string, modeloId: string, pasoId: string) => void;
+  onGuardarDocumentoExpediente?: (expedienteId: string, doc: DocumentoEstudio) => void;
+  onAbrirEditorConTexto?: (texto: string, titulo: string, exp: Expediente) => void;
 }
 
 export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
@@ -20,14 +26,78 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
   documentos,
   pruebas,
   audiencias,
+  modelosRepositorio = [],
+  progresosPasos = [],
+  onTogglePasoCompletado,
+  onGuardarDocumentoExpediente,
+  onAbrirEditorConTexto,
 }) => {
-  const [activeTab, setActiveTab] = useState<'resumen' | 'partes' | 'movimientos' | 'financiero' | 'documentos'>('resumen');
+  const [activeTab, setActiveTab] = useState<'resumen' | 'partes' | 'movimientos' | 'financiero' | 'documentos' | 'guias'>('resumen');
+  
+  // Local state for selecting model in "guias" tab
+  const [modeloSeleccionadoId, setModeloSeleccionadoId] = useState<string>('');
+  const [textoGeneradoModal, setTextoGeneradoModal] = useState<string>('');
+  const [modeloParaGenerar, setModeloParaGenerar] = useState<ModeloEscritoRepositorio | null>(null);
+  const [copiadoExito, setCopiadoExito] = useState(false);
 
   if (!isOpen || !expediente) return null;
 
   const docsCausa = documentos.filter((d) => d.expediente_id === expediente.id || d.carpeta === expediente.id);
   const pruebasCausa = pruebas.filter((p) => p.expediente_id === expediente.id);
   const audienciasCausa = audiencias.filter((a) => a.expediente_id === expediente.id);
+
+  // Models relevant to this expediente's fuero
+  const modelosFuero = modelosRepositorio.filter(m => m.fuero === expediente.fuero);
+  const modelosMostrados = modelosFuero.length > 0 ? modelosFuero : modelosRepositorio;
+  
+  // Selected model for steps checklist
+  const modeloActualGuia = modelosRepositorio.find(m => m.id === modeloSeleccionadoId) || modelosMostrados[0];
+  
+  // Progress for current expediente and model
+  const progresoActual = progresosPasos.find(
+    p => p.expediente_id === expediente.id && p.modelo_id === (modeloActualGuia?.id || '')
+  );
+  const pasosCompletados = progresoActual?.pasosCompletadosIds || [];
+
+  const handleInterpolarEscrito = (modelo: ModeloEscritoRepositorio) => {
+    let txt = modelo.contenidoPlantilla;
+    txt = txt
+      .replace(/{NUMERO_EXPTE}/g, expediente.numero)
+      .replace(/{CARATULA}/g, expediente.caratula)
+      .replace(/{JUZGADO}/g, expediente.juzgado)
+      .replace(/{CLIENTE}/g, expediente.cliente)
+      .replace(/{LETRADO_PATROCINANTE}/g, expediente.letrado_patrocinante)
+      .replace(/{CIRCUNSCRIPCION}/g, expediente.circunscripcion)
+      .replace(/{DEMANDADO}/g, expediente.partes.find(p => p.rol === 'Demandado/a')?.nombre || 'LA DEMANDADA')
+      .replace(/{ACTOR}/g, expediente.partes.find(p => p.rol === 'Actor/a')?.nombre || expediente.cliente);
+    
+    setModeloParaGenerar(modelo);
+    setTextoGeneradoModal(txt);
+  };
+
+  const handleCopiarTexto = (txt: string) => {
+    navigator.clipboard.writeText(txt);
+    setCopiadoExito(true);
+    setTimeout(() => setCopiadoExito(false), 2000);
+  };
+
+  const handleConfirmarGuardarDoc = () => {
+    if (!modeloParaGenerar || !onGuardarDocumentoExpediente) return;
+    const nuevoDoc: DocumentoEstudio = {
+      id: `DOC-${Date.now()}`,
+      nombre: `${modeloParaGenerar.titulo} - Expte ${expediente.numero}`,
+      expediente_id: expediente.id,
+      carpeta: expediente.id,
+      tipoArchivo: 'docx',
+      tamanio: '32 KB',
+      fecha_modificacion: new Date().toISOString().split('T')[0],
+      autor: expediente.letrado_patrocinante,
+      contenidoTexto: textoGeneradoModal,
+    };
+
+    onGuardarDocumentoExpediente(expediente.id, nuevoDoc);
+    setModeloParaGenerar(null);
+  };
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -115,6 +185,17 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
           >
             <Paperclip className="w-4 h-4" />
             <span>Documentos ({docsCausa.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('guias')}
+            className={`py-3 font-semibold transition-colors border-b-2 flex items-center space-x-1.5 ${
+              activeTab === 'guias'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <BookOpen className="w-4 h-4 text-amber-400" />
+            <span>Guía y Escritos del Repositorio</span>
           </button>
         </div>
 
@@ -374,7 +455,193 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
               )}
             </div>
           )}
+
+          {activeTab === 'guias' && (
+            <div className="space-y-6">
+              {/* Header and selector */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[10px] font-mono text-blue-400 uppercase tracking-widest block font-bold">
+                      Repositorio de Escritos Recomendados
+                    </span>
+                    <h3 className="text-sm font-bold text-slate-100">
+                      Guía Procesal para Fuero {expediente.fuero}
+                    </h3>
+                  </div>
+
+                  {modelosRepositorio.length > 0 && (
+                    <select
+                      value={modeloActualGuia?.id || ''}
+                      onChange={(e) => setModeloSeleccionadoId(e.target.value)}
+                      className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-mono font-bold focus:outline-none focus:border-blue-500"
+                    >
+                      {modelosRepositorio.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          [{m.fuero}] {m.titulo}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {modeloActualGuia && (
+                  <p className="text-xs text-slate-400 leading-relaxed pt-2 border-t border-slate-900">
+                    {modeloActualGuia.descripcion}
+                  </p>
+                )}
+              </div>
+
+              {/* Progress bar */}
+              {modeloActualGuia && (
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-300 font-bold flex items-center space-x-2">
+                      <CheckSquare className="w-4 h-4 text-emerald-400" />
+                      <span>Avance de Pasos Procesales ({pasosCompletados.length} / {modeloActualGuia.pasosASeguir.length})</span>
+                    </span>
+                    <span className="text-blue-400 font-bold">
+                      {Math.round((pasosCompletados.length / (modeloActualGuia.pasosASeguir.length || 1)) * 100)}% Completado
+                    </span>
+                  </div>
+
+                  <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
+                    <div 
+                      className="bg-emerald-500 h-full transition-all duration-300" 
+                      style={{ width: `${(pasosCompletados.length / (modeloActualGuia.pasosASeguir.length || 1)) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Steps Checklist */}
+              {modeloActualGuia && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">
+                    Secuencia de Pasos para este Expediente:
+                  </h4>
+
+                  <div className="space-y-2">
+                    {modeloActualGuia.pasosASeguir.map((paso) => {
+                      const isCompletado = pasosCompletados.includes(paso.id);
+                      return (
+                        <div 
+                          key={paso.id}
+                          className={`p-4 rounded-xl border transition-all flex items-start space-x-3.5 ${
+                            isCompletado 
+                              ? 'bg-slate-950/60 border-emerald-900/60 opacity-80' 
+                              : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isCompletado}
+                            onChange={() => {
+                              if (onTogglePasoCompletado && modeloActualGuia) {
+                                onTogglePasoCompletado(expediente.id, modeloActualGuia.id, paso.id);
+                              }
+                            }}
+                            className="mt-1 w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className={`text-xs font-bold ${isCompletado ? 'line-through text-slate-400' : 'text-slate-100'}`}>
+                                Paso {paso.orden}: {paso.titulo}
+                              </span>
+                              {paso.diasEstimados && (
+                                <span className="text-[10px] font-mono text-amber-400 bg-amber-950/60 border border-amber-800 px-2 py-0.5 rounded">
+                                  ~ {paso.diasEstimados} días
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-400 leading-relaxed">{paso.descripcion}</p>
+
+                            <div className="pt-2 flex items-center justify-between">
+                              <span className="text-[10px] font-mono text-slate-500">
+                                {paso.obligatorio ? '• Requisito Procesal' : '• Opcional'}
+                              </span>
+
+                              <button
+                                onClick={() => handleInterpolarEscrito(modeloActualGuia)}
+                                className="px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/40 rounded text-[11px] font-mono font-bold transition-colors flex items-center space-x-1"
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                                <span>Generar Escrito del Repositorio</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* Modal Interpolar Escrito para este Expediente */}
+        {modeloParaGenerar && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden p-6 space-y-4 animate-in fade-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                  <span className="text-[10px] font-mono text-blue-400 uppercase block font-bold">
+                    Escrito Interpolado con Datos del Expte N° {expediente.numero}
+                  </span>
+                  <h3 className="text-sm font-bold text-slate-100">{modeloParaGenerar.titulo}</h3>
+                </div>
+                <button onClick={() => setModeloParaGenerar(null)} className="text-slate-400 hover:text-white">
+                  ✕
+                </button>
+              </div>
+
+              <textarea
+                value={textoGeneradoModal}
+                onChange={(e) => setTextoGeneradoModal(e.target.value)}
+                rows={10}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-blue-500 leading-relaxed"
+              />
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs font-mono">
+                <button
+                  onClick={() => handleCopiarTexto(textoGeneradoModal)}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-bold transition-colors flex items-center space-x-1"
+                >
+                  <Copy className="w-3.5 h-3.5 text-blue-400" />
+                  <span>{copiadoExito ? '¡Copiado!' : 'Copiar Texto'}</span>
+                </button>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleConfirmarGuardarDoc}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold transition-colors flex items-center space-x-1"
+                  >
+                    <Folder className="w-3.5 h-3.5" />
+                    <span>Guardar en Documentos del Expte</span>
+                  </button>
+
+                  {onAbrirEditorConTexto && (
+                    <button
+                      onClick={() => {
+                        const txt = textoGeneradoModal;
+                        const tit = modeloParaGenerar.titulo;
+                        setModeloParaGenerar(null);
+                        onClose();
+                        onAbrirEditorConTexto(txt, tit, expediente);
+                      }}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition-colors flex items-center space-x-1"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Abrir en Gestor .docx</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="bg-slate-950 px-6 py-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono shrink-0">

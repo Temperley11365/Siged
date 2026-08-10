@@ -8,6 +8,7 @@ import { TareasView } from './components/TareasView';
 import { CalendarView } from './components/CalendarView';
 import { DocumentosEditorView } from './components/DocumentosEditorView';
 import { ApiExplorerView } from './components/ApiExplorerView';
+import { RepositorioEscritosView } from './components/RepositorioEscritosView';
 import { OidcAuthModal } from './components/OidcAuthModal';
 import { PerfilCredencialesModal } from './components/PerfilCredencialesModal';
 import { NotificacionToastPopup } from './components/NotificacionToastPopup';
@@ -29,7 +30,9 @@ import {
   EstadoNotificacionAudiencia,
   CredencialesSIGED,
   NotificacionPushSiged,
-  RegistroSincronizacionSiged
+  RegistroSincronizacionSiged,
+  ModeloEscritoRepositorio,
+  ProgresoPasosExpediente
 } from './types';
 
 import { 
@@ -44,7 +47,9 @@ import {
   INITIAL_PLANTILLAS_DOCX,
   INITIAL_NOTIFICACIONES_PUSH,
   INITIAL_REGISTROS_SINCRONIZACION,
-  DEFAULT_OIDC_SESSION 
+  DEFAULT_OIDC_SESSION,
+  INITIAL_REPOSITORIO_ESCRITOS,
+  INITIAL_PROGRESO_PASOS
 } from './data/mockStore';
 
 import { sendBrowserPushNotification } from './utils/pushNotifications';
@@ -63,6 +68,8 @@ export default function App() {
   const [diasInhabiles, setDiasInhabiles] = useState<DiaInhabil[]>(INITIAL_DIAS_INHABILES);
   const [documentos, setDocumentos] = useState<DocumentoEstudio[]>(INITIAL_DOCUMENTOS);
   const [plantillas] = useState<PlantillaDocx[]>(INITIAL_PLANTILLAS_DOCX);
+  const [modelosRepositorio, setModelosRepositorio] = useState<ModeloEscritoRepositorio[]>(INITIAL_REPOSITORIO_ESCRITOS);
+  const [progresosPasos, setProgresosPasos] = useState<ProgresoPasosExpediente[]>(INITIAL_PROGRESO_PASOS);
 
   // SIGED Notifications & Sync Stores
   const [notificacionesPush, setNotificacionesPush] = useState<NotificacionPushSiged[]>(INITIAL_NOTIFICACIONES_PUSH);
@@ -352,9 +359,64 @@ export default function App() {
     setDiasInhabiles((prev) => prev.filter((d) => d.id !== id));
   };
 
-  // Handlers Documentos
+  // Handlers Documentos & Repositorio
   const handleGuardarDocumento = (doc: DocumentoEstudio) => {
     setDocumentos((prev) => [doc, ...prev]);
+  };
+
+  const handleGuardarDocumentoExpediente = (expedienteId: string, doc: DocumentoEstudio) => {
+    setDocumentos((prev) => [doc, ...prev]);
+  };
+
+  const handleAbrirEditorConTexto = (texto: string, titulo: string, exp: Expediente) => {
+    const nuevoDoc: DocumentoEstudio = {
+      id: `DOC-${Date.now()}`,
+      nombre: `${titulo} - Expte ${exp.numero}`,
+      expediente_id: exp.id,
+      carpeta: exp.id,
+      tipoArchivo: 'docx',
+      tamanio: '35 KB',
+      fecha_modificacion: new Date().toISOString().split('T')[0],
+      autor: abogadoActual.nombre,
+      contenidoTexto: texto,
+    };
+    setDocumentos((prev) => [nuevoDoc, ...prev]);
+    setActiveTab('documentos');
+  };
+
+  const handleAgregarModeloRepositorio = (nuevoModelo: ModeloEscritoRepositorio) => {
+    setModelosRepositorio((prev) => [nuevoModelo, ...prev]);
+  };
+
+  const handleTogglePasoCompletado = (expedienteId: string, modeloId: string, pasoId: string) => {
+    setProgresosPasos((prev) => {
+      const idx = prev.findIndex((p) => p.expediente_id === expedienteId && p.modelo_id === modeloId);
+      if (idx >= 0) {
+        const item = prev[idx];
+        const yaCompletado = item.pasosCompletadosIds.includes(pasoId);
+        const nuevosPasos = yaCompletado
+          ? item.pasosCompletadosIds.filter((id) => id !== pasoId)
+          : [...item.pasosCompletadosIds, pasoId];
+
+        const updated = [...prev];
+        updated[idx] = {
+          ...item,
+          pasosCompletadosIds: nuevosPasos,
+          fechaUltimaActualizacion: new Date().toISOString().split('T')[0],
+        };
+        return updated;
+      } else {
+        return [
+          ...prev,
+          {
+            expediente_id: expedienteId,
+            modelo_id: modeloId,
+            pasosCompletadosIds: [pasoId],
+            fechaUltimaActualizacion: new Date().toISOString().split('T')[0],
+          },
+        ];
+      }
+    });
   };
 
   return (
@@ -392,9 +454,14 @@ export default function App() {
             documentos={documentos}
             pruebas={pruebas}
             audiencias={audiencias}
+            modelosRepositorio={modelosRepositorio}
+            progresosPasos={progresosPasos}
             onSeleccionarActuacionParaProcesar={handleSeleccionarActuacionParaProcesar}
             onCrearNuevoExpediente={handleCrearNuevoExpediente}
             onAbrirAsociadosModal={handleAbrirAsociadosModal}
+            onTogglePasoCompletado={handleTogglePasoCompletado}
+            onGuardarDocumentoExpediente={handleGuardarDocumentoExpediente}
+            onAbrirEditorConTexto={handleAbrirEditorConTexto}
           />
         )}
 
@@ -444,6 +511,18 @@ export default function App() {
             plantillas={plantillas}
             expedientes={expedientes}
             onGuardarDocumento={handleGuardarDocumento}
+          />
+        )}
+
+        {activeTab === 'repositorio' && (
+          <RepositorioEscritosView
+            modelos={modelosRepositorio}
+            expedientes={expedientes}
+            progresosPasos={progresosPasos}
+            onAgregarModelo={handleAgregarModeloRepositorio}
+            onTogglePasoCompletado={handleTogglePasoCompletado}
+            onGuardarDocumentoExpediente={handleGuardarDocumentoExpediente}
+            onAbrirEditorConTexto={handleAbrirEditorConTexto}
           />
         )}
 

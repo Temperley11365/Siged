@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Abogado, Expediente, ActuacionSIGED, DocumentoEstudio, PruebaExpediente, AudienciaExpediente } from '../types';
+import { Abogado, Expediente, ActuacionSIGED, DocumentoEstudio, PruebaExpediente, AudienciaExpediente, ModeloEscritoRepositorio, ProgresoPasosExpediente } from '../types';
 import { FileText, Search, UserCheck, Scale, ExternalLink, Eye, Filter, PlusCircle, Users } from 'lucide-react';
 import { FichaExpedienteModal } from './FichaExpedienteModal';
 
@@ -11,9 +11,14 @@ interface ExpedientesViewProps {
   documentos: DocumentoEstudio[];
   pruebas: PruebaExpediente[];
   audiencias: AudienciaExpediente[];
+  modelosRepositorio?: ModeloEscritoRepositorio[];
+  progresosPasos?: ProgresoPasosExpediente[];
   onSeleccionarActuacionParaProcesar: (actuacion: ActuacionSIGED, expte: Expediente) => void;
   onCrearNuevoExpediente?: (exp: Expediente) => void;
   onAbrirAsociadosModal?: (expte?: Expediente) => void;
+  onTogglePasoCompletado?: (expedienteId: string, modeloId: string, pasoId: string) => void;
+  onGuardarDocumentoExpediente?: (expedienteId: string, doc: DocumentoEstudio) => void;
+  onAbrirEditorConTexto?: (texto: string, titulo: string, exp: Expediente) => void;
 }
 
 export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
@@ -24,9 +29,14 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
   documentos,
   pruebas,
   audiencias,
+  modelosRepositorio = [],
+  progresosPasos = [],
   onSeleccionarActuacionParaProcesar,
   onCrearNuevoExpediente,
   onAbrirAsociadosModal,
+  onTogglePasoCompletado,
+  onGuardarDocumentoExpediente,
+  onAbrirEditorConTexto,
 }) => {
   const [busqueda, setBusqueda] = useState('');
   const [filtroFuero, setFiltroFuero] = useState('todos');
@@ -373,6 +383,11 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
         documentos={documentos}
         pruebas={pruebas}
         audiencias={audiencias}
+        modelosRepositorio={modelosRepositorio}
+        progresosPasos={progresosPasos}
+        onTogglePasoCompletado={onTogglePasoCompletado}
+        onGuardarDocumentoExpediente={onGuardarDocumentoExpediente}
+        onAbrirEditorConTexto={onAbrirEditorConTexto}
       />
 
       {/* Modal Alta de Causa */}

@@ -10,7 +10,9 @@ import {
   PlantillaDocx,
   OidcSessionState,
   NotificacionPushSiged,
-  RegistroSincronizacionSiged
+  RegistroSincronizacionSiged,
+  ModeloEscritoRepositorio,
+  ProgresoPasosExpediente
 } from '../types';
 
 export const DEFAULT_OIDC_SESSION: OidcSessionState = {
@@ -679,5 +681,396 @@ Tengo el agrado de dirigirme a Ud. en el marco del Expediente N° {{EXPEDIENTE}}
 2) {{PUNTO_INFORMATIVO_2}}
 
 El presente oficio digital ha sido librado mediante resolución de fecha {{FECHA_RESOLUCION}} y firmado electrónicamente en el portal SIGED Misiones.`
+  }
+];
+
+export const INITIAL_REPOSITORIO_ESCRITOS: ModeloEscritoRepositorio[] = [
+  {
+    id: 'REP-001',
+    titulo: 'Demanda por Daños y Perjuicios (Accidente de Tránsito)',
+    fuero: 'Civil y Comercial',
+    tematica: 'Daños y Perjuicios',
+    tipoExpediente: 'Juicio Ordinario',
+    etapaProcesal: 'Iniciación / Demanda',
+    descripcion: 'Modelo completo para interposición de demanda por siniestro vial con Citación en Garantía a Aseguradora bajo CPCCyM Misiones.',
+    autor: 'Dr. Juan Manuel Posadas',
+    fechaCreacion: '2026-07-15',
+    etiquetas: ['Civil', 'Accidente', 'Aseguradora', 'Daño Moral', 'Tasa DGR'],
+    contenidoPlantilla: `SEÑOR JUEZ DE PRIMERA INSTANCIA EN LO CIVIL Y COMERCIAL DE POSADAS:
+
+{LETRADO_PATROCINANTE}, Matrícula Profesional CADAM, apoderado de {CLIENTE}, constituyendo domicilio legal en calle Posadas N° 1240 y electrónico en portal SIGED Misiones, en los autos caratulados "{CARATULA}", Expediente N° {NUMERO_EXPTE}, tramitados ante el {JUZGADO}, a V.I. respetuosamente digo:
+
+I. OBJETO:
+Que vengo en tiempo y forma a promover formal demanda por Daños y Perjuicios derivados de accidente de tránsito contra {DEMANDADO}, con domicilio constituido en la provincia de Misiones, y citando en garantía a la Compañía Aseguradora, reclamando la suma total indemnizatoria con más sus intereses y costas.
+
+II. HECHOS:
+Con fecha [FECHA DE HECHO], la víctima circulaba reglamentariamente cuando fue embestida por el vehículo conducido por el demandado...
+
+III. RUBROS INDEMNIZATORIOS:
+1. Valor de Reparación del Vehículo y Privación de Uso.
+2. Incapacidad Sobreviniente Física y Psíquica.
+3. Daño Moral y Gastos Médicos / Farmacéuticos.
+
+IV. LIQUIDACIÓN DE TASAS DGR MISIONES Y CAJA FORENSE:
+Se adjunta comprobante de pago de Tasa de Justicia (1.5%) ante DGR Misiones y estampilla previsional de Caja Forense Ley N° 3144.
+
+V. PETITORIO:
+1. Me tenga por presentado, por parte y por constituido el domicilio electrónico SIGED.
+2. Se corra traslado de la demanda a la demandada y citada en garantía por el término de QUINCE (15) DÍAS HÁBILES.
+3. Oportunamente se dicte sentencia haciendo lugar a la demanda con costas.
+
+PROVEER DE CONFORMIDAD. SERÁ JUSTICIA.`,
+    pasosASeguir: [
+      {
+        id: 'PASO-001-1',
+        orden: 1,
+        titulo: 'Iniciación: Demanda + Pago de Tasa DGR (1.5%) y Bono Caja Forense',
+        descripcion: 'Cargar el escrito inicial en SIGED con el formulario DGR de Tasa de Justicia y los aportes de ley.',
+        diasEstimados: 3,
+        escritoRecomendadoId: 'REP-001',
+        escritoRecomendadoNombre: 'Demanda por Daños y Perjuicios',
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-001-2',
+        orden: 2,
+        titulo: 'Cédula Digital SIGED de Traslado a Demandada y Citada en Garantía',
+        descripcion: 'Diligenciar cédula electrónica de notificación. Plazo de contestación: 15 días hábiles.',
+        diasEstimados: 15,
+        escritoRecomendadoNombre: 'Cédula Digital SIGED',
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-001-3',
+        orden: 3,
+        titulo: 'Contestación de Demanda y Excepciones de la Aseguradora',
+        descripcion: 'Revisar la contestación en SIGED y responder excepciones o traslado de documentación por 5 días.',
+        diasEstimados: 5,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-001-4',
+        orden: 4,
+        titulo: 'Audiencia de Apertura a Prueba (Art. 360 CPCCyM Misiones)',
+        descripcion: 'Fijar puntos de pericia mecánica y médica, designar perito único de oficio.',
+        diasEstimados: 10,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-001-5',
+        orden: 5,
+        titulo: 'Producción de Pruebas (Periciales, Testimoniales e Informes)',
+        descripcion: 'Diligenciar oficios informativos y acompañar puntos de pericia al médico legista.',
+        diasEstimados: 30,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-001-6',
+        orden: 6,
+        titulo: 'Clausura de Prueba y Presentación de Alegatos',
+        descripcion: 'Presentar alegato sobre la prueba producida en el plazo de 6 días hábiles.',
+        diasEstimados: 6,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-001-7',
+        orden: 7,
+        titulo: 'Solicitud de Autos para Sentencia Definitiva',
+        descripcion: 'Pedir el pase a fallo del expediente para el dictado de la sentencia resolutiva.',
+        diasEstimados: 5,
+        obligatorio: true,
+      },
+    ]
+  },
+  {
+    id: 'REP-002',
+    titulo: 'Demanda Laboral por Despido e Indemnización Ley 20.744',
+    fuero: 'Laboral',
+    tematica: 'Despido e Indemnización',
+    tipoExpediente: 'Juicio Laboral Ordinario',
+    etapaProcesal: 'Iniciación / Demanda',
+    descripcion: 'Modelo procesal de demanda laboral con invocación de beneficio de gratuidad (Ley Orgánica de Trabajo Misiones).',
+    autor: 'Dra. María Elena Gómez',
+    fechaCreacion: '2026-07-20',
+    etiquetas: ['Laboral', 'Despido', 'LCT', 'Indemnización', 'Gratuidad'],
+    contenidoPlantilla: `SEÑOR JUEZ DE PRIMERA INSTANCIA EN LO LABORAL DE POSADAS:
+
+{LETRADO_PATROCINANTE}, M.P. CADAM, por la representación de {CLIENTE}, en los autos caratulados "{CARATULA}", Expte. N° {NUMERO_EXPTE}, tramitados ante el {JUZGADO}, a V.I. digo:
+
+I. OBJETO:
+Que vengo a interponer demanda laboral por despido incausado e indemnizaciones de la Ley 20.744 contra {DEMANDADO}, reclamando rubros indemnizatorios, preaviso, integración de mes de despido y diferencias salariales.
+
+II. BENEFICIO DE GRATUIDAD:
+Conforme al CPL de Misiones y Ley de Contrato de Trabajo, mi mandante goza del beneficio procesal de gratuidad en el acceso a la justicia.
+
+III. HECHOS Y LIQUIDACIÓN:
+1. Antigüedad y Fecha de Ingreso.
+2. Categoria Profesional e Indemnización Art. 245 LCT.
+3. Multas Ley 24.013 y Ley 25.323.
+
+IV. PETITORIO:
+1. Se me tenga por presentado en el carácter invocado.
+2. Se confiera traslado de la demanda por DIEZ (10) DÍAS HÁBILES.
+3. Se haga lugar a la demanda con costas a la empleadora.
+
+PROVEER DE CONFORMIDAD. SERÁ JUSTICIA.`,
+    pasosASeguir: [
+      {
+        id: 'PASO-002-1',
+        orden: 1,
+        titulo: 'Interposición de Demanda y Verificación de Acreditación TCL/Telegramas',
+        descripcion: 'Ingreso del escrito inicial por SIGED Misiones y digitalización de cartas documento.',
+        diasEstimados: 2,
+        escritoRecomendadoId: 'REP-002',
+        escritoRecomendadoNombre: 'Demanda Laboral por Despido',
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-002-2',
+        orden: 2,
+        titulo: 'Traslado de Demanda por Cédula Digital SIGED (10 Días Hábiles)',
+        descripcion: 'Notificación oficial al empleador en el domicilio fiscal registrado.',
+        diasEstimados: 10,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-002-3',
+        orden: 3,
+        titulo: 'Audiencia Conciliatoria (CPL Misiones)',
+        descripcion: 'Comparendo personal de las partes e intento de acuerdo homologado.',
+        diasEstimados: 15,
+        obligatorio: false,
+      },
+      {
+        id: 'PASO-002-4',
+        orden: 4,
+        titulo: 'Apertura a Prueba y Pericial Contable en Libros del Empleador',
+        descripcion: 'Sorteo de perito contador y libramiento de oficio a AFIP y Ministerio de Trabajo.',
+        diasEstimados: 20,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-002-5',
+        orden: 5,
+        titulo: 'Alegatos y Sentencia Definitiva Laboral',
+        descripcion: 'Presentación de alegato e ingreso a despacho para resolución judicial.',
+        diasEstimados: 10,
+        obligatorio: true,
+      },
+    ]
+  },
+  {
+    id: 'REP-003',
+    titulo: 'Solicitud de Divorcio Unilateral y Convenio Regulador',
+    fuero: 'Familia',
+    tematica: 'Divorcio y Alimentos',
+    tipoExpediente: 'Proceso Especial de Familia',
+    etapaProcesal: 'Iniciación / Demanda',
+    descripcion: 'Petición unilateral de divorcio (Art. 437 CCCN) con propuesta sobre atribución de vivienda, alimentos y comunicación.',
+    autor: 'Dr. Carlos Alberto Ruiz',
+    fechaCreacion: '2026-07-28',
+    etiquetas: ['Familia', 'Divorcio', 'CCCN', 'Alimentos', 'Convenio'],
+    contenidoPlantilla: `SEÑOR/A JUEZ/A DEL JUZGADO DE FAMILIA DE POSADAS:
+
+{LETRADO_PATROCINANTE}, letrado patrocinante de {CLIENTE}, en los autos "{CARATULA}", Expte. N° {NUMERO_EXPTE}, ante el {JUZGADO}, digo:
+
+I. OBJETO:
+Vengo a solicitar formalmente el Divorcio Vincular Unilateral del matrimonio contraído con {DEMANDADO}, adjuntando la Propuesta Reguladora exigida por el Art. 438 CCCN.
+
+II. PROPUESTA REGULADORA:
+1. Ejercicio de la Responsabilidad Parental y Cuidado Personal de los hijos menores.
+2. Cuota Alimentaria y Gastos de Educación / Cobertura Médica.
+3. Atribución de la Vivienda Familiar y Bienes Gananciales.
+
+III. PETITORIO:
+1. Me tenga por presentado y por peticionado el divorcio vincular.
+2. Se corra traslado de la propuesta reguladora por dieciocho (18) días.
+3. Oportunamente se dicte sentencia decretando el divorcio vincular e inscribiendo en el Registro de las Personas Misiones.
+
+SERÁ JUSTICIA.`,
+    pasosASeguir: [
+      {
+        id: 'PASO-003-1',
+        orden: 1,
+        titulo: 'Presentación de Petición Unilateral y Acta de Matrimonio',
+        descripcion: 'Acompañar libreta de matrimonio y partidas de nacimiento legalizadas de los hijos.',
+        diasEstimados: 3,
+        escritoRecomendadoId: 'REP-003',
+        escritoRecomendadoNombre: 'Solicitud de Divorcio Unilateral',
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-003-2',
+        orden: 2,
+        titulo: 'Traslado por Cédula Digital de la Propuesta Reguladora (18 Días)',
+        descripcion: 'Notificar al cónyuge para responder o presentar contrapropuesta.',
+        diasEstimados: 18,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-003-3',
+        orden: 3,
+        titulo: 'Audiencia de Conciliación de Convenio con Asesoría de Menores',
+        descripcion: 'Reunión ante la secretaría del juzgado de familia para consensuar cuota y comunicación.',
+        diasEstimados: 10,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-003-4',
+        orden: 4,
+        titulo: 'Sentencia de Divorcio y Oficio al Registro de las Personas de Posadas',
+        descripcion: 'Inscripción marginal del divorcio en el Acta de Matrimonio.',
+        diasEstimados: 5,
+        obligatorio: true,
+      },
+    ]
+  },
+  {
+    id: 'REP-004',
+    titulo: 'Ejecución de Honorarios Profesionales y Solicitud de Embargo',
+    fuero: 'Caducidades y Concursos',
+    tematica: 'Ejecución de Honorarios',
+    tipoExpediente: 'Juicio Ejecutivo',
+    etapaProcesal: 'Ejecución de Sentencia',
+    descripcion: 'Petición firme de cobro ejecutivo de honorarios regulados con pedido de traba de embargo bancario.',
+    autor: 'Dr. Juan Manuel Posadas',
+    fechaCreacion: '2026-08-01',
+    etiquetas: ['Ejecutivo', 'Honorarios', 'Embargo', 'Banco Macro', 'CADAM'],
+    contenidoPlantilla: `SEÑOR JUEZ DE PRIMERA INSTANCIA:
+
+{LETRADO_PATROCINANTE}, abogando en causa propia, en los autos caratulados "{CARATULA}", Expte. N° {NUMERO_EXPTE}, ante el {JUZGADO}, digo:
+
+I. OBJETO:
+Vengo a iniciar la Ejecución de Honorarios Profesionales firmes contra {DEMANDADO}, por la suma regulada con más sus intereses pactados y gastos de ley.
+
+II. TRABA DE EMBARGO PREVENTIVO:
+Solicito se trabe embargo preventivo sobre los fondos depositados en cuentas bancarias del ejecutado en el Banco Macro S.A. o cualquier otra entidad del sistema financiero hasta cubrir el importe reclamado.
+
+III. PETITORIO:
+1. Se ordene la intimación de pago por el término de TRES (3) DÍAS HÁBILES.
+2. Se libre oficio electrónico al Banco Macro para efectivizar la medida cautelar.
+
+SERÁ JUSTICIA.`,
+    pasosASeguir: [
+      {
+        id: 'PASO-004-1',
+        orden: 1,
+        titulo: 'Interposición de Ejecución y Acreditación de Regulación Firme',
+        descripcion: 'Adjuntar cédula de notificación del auto regulatorio firme y no apelado.',
+        diasEstimados: 2,
+        escritoRecomendadoId: 'REP-004',
+        escritoRecomendadoNombre: 'Ejecución de Honorarios',
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-004-2',
+        orden: 2,
+        titulo: 'Intimación de Pago por Cédula SIGED (3 Días Hábiles)',
+        descripcion: 'Notificación oficial para cancelar capital reclamado bajo apercibimiento de ejecución.',
+        diasEstimados: 3,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-004-3',
+        orden: 3,
+        titulo: 'Oficio Digital a Banco Macro S.A. para Traba de Embargo',
+        descripcion: 'Retención de fondos y transferencia a cuenta judicial en el Banco de la Provincia de Misiones.',
+        diasEstimados: 5,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-004-4',
+        orden: 4,
+        titulo: 'Aprobación de Liquidación Final y Transferencia a CBU del Abogado',
+        descripcion: 'Orden de giro bancario y cancelación del expediente ejecutivo.',
+        diasEstimados: 4,
+        obligatorio: true,
+      },
+    ]
+  },
+  {
+    id: 'REP-005',
+    titulo: 'Sucesión Ab Intestato - Apertura y Declaratoria de Herederos',
+    fuero: 'Civil y Comercial',
+    tematica: 'Sucesión Ab Intestato',
+    tipoExpediente: 'Proceso Sucesorio',
+    etapaProcesal: 'Iniciación / Demanda',
+    descripcion: 'Petición judicial de inicio de juicio sucesorio, acreditación de acervo hereditario y solicitud de publicacion de edictos.',
+    autor: 'Dra. María Elena Gómez',
+    fechaCreacion: '2026-08-02',
+    etiquetas: ['Sucesión', 'Herederos', 'Edictos', 'Boletín Oficial', 'Propiedad'],
+    contenidoPlantilla: `SEÑOR JUEZ CIVIL Y COMERCIAL DE POSADAS:
+
+{LETRADO_PATROCINANTE}, patrocinando a {CLIENTE}, en las actuaciones sucesorias de quien en vida fuera el causante, Expte. N° {NUMERO_EXPTE} "{CARATULA}", ante V.I. digo:
+
+I. OBJETO:
+Vengo a solicitar la apertura del Juicio Sucesorio Ab Intestato del causante, acompañando acta de defunción legalizada e inscrita en la provincia de Misiones.
+
+II. ACREDITACIÓN DE VÍNCULO Y BIENES:
+Se acompañan partidas de nacimiento/matrimonio que acreditan el carácter de herederos universales y título de propiedad del bien inmueble.
+
+III. PUBLICATION DE EDICTOS:
+Solicito se disponga la publicación de edictos por tres (3) días en el Boletín Oficial de la Provincia de Misiones e informe al Registro de Juicios Universales.
+
+SERÁ JUSTICIA.`,
+    pasosASeguir: [
+      {
+        id: 'PASO-005-1',
+        orden: 1,
+        titulo: 'Presentación del Escrito de Inicio y Partidas de Defunción / Nacimiento',
+        descripcion: 'Cargar el inicio del expediente en SIGED con partidas legalizadas.',
+        diasEstimados: 3,
+        escritoRecomendadoId: 'REP-005',
+        escritoRecomendadoNombre: 'Apertura de Sucesión Ab Intestato',
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-005-2',
+        orden: 2,
+        titulo: 'Publicación de Edictos por 3 Días en el Boletín Oficial de Misiones',
+        descripcion: 'Generar comprobante de pago e ingresar edicto oficial digital.',
+        diasEstimados: 10,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-005-3',
+        orden: 3,
+        titulo: 'Informe al Registro de Juicios Universales de Misiones',
+        descripcion: 'Verificar si no existen otros sucesorios promovidos respecto del mismo causante.',
+        diasEstimados: 5,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-005-4',
+        orden: 4,
+        titulo: 'Dictamen de Fiscalía y Dictado de la Declaratoria de Herederos',
+        descripcion: 'Auto interlocutorio que declara herederos legítimos al cónyuge y descendientes.',
+        diasEstimados: 15,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-005-5',
+        orden: 5,
+        titulo: 'Inscripción en el Registro de la Propiedad Inmueble y Adjudicación',
+        descripcion: 'Inscribir el inmueble a nombre de los herederos y regular honorarios del letrado.',
+        diasEstimados: 10,
+        obligatorio: true,
+      },
+    ]
+  }
+];
+
+export const INITIAL_PROGRESO_PASOS: ProgresoPasosExpediente[] = [
+  {
+    expediente_id: 'EXP-1420',
+    modelo_id: 'REP-001',
+    pasosCompletadosIds: ['PASO-001-1', 'PASO-001-2'],
+    fechaUltimaActualizacion: '2026-08-03 16:00',
+  },
+  {
+    expediente_id: 'EXP-3105',
+    modelo_id: 'REP-004',
+    pasosCompletadosIds: ['PASO-004-1'],
+    fechaUltimaActualizacion: '2026-08-02 11:30',
   }
 ];
