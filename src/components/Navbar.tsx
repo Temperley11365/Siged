@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Zap, FileText, Scale, Calendar, CheckSquare, Folder, Code, Key, UserCheck, 
   ShieldCheck, ChevronDown, Bell, RefreshCw, Settings, Check, ExternalLink, Cpu, ShieldAlert,
-  Users, UserPlus, LogIn, LogOut, Shield, Sun, Moon
+  Users, UserPlus, LogIn, LogOut, Shield, Sun, Moon, BookOpen
 } from 'lucide-react';
 import { Abogado, OidcSessionState, NotificacionPushSiged } from '../types';
 
@@ -14,6 +14,7 @@ export type TabId =
   | 'tareas' 
   | 'agenda' 
   | 'documentos' 
+  | 'repositorio'
   | 'api_explorer';
 
 interface NavbarProps {
@@ -62,6 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'tareas', label: 'Tareas', icon: <CheckSquare className="w-4 h-4 text-indigo-400" /> },
     { id: 'agenda', label: 'Agenda & Plazos', icon: <Calendar className="w-4 h-4 text-amber-400" /> },
     { id: 'documentos', label: 'Gestor & .docx', icon: <Folder className="w-4 h-4 text-cyan-400" /> },
+    { id: 'repositorio', label: 'Repositorio & Guías', icon: <BookOpen className="w-4 h-4 text-amber-400" /> },
     { id: 'api_explorer', label: 'API Explorer', icon: <Code className="w-4 h-4 text-rose-400" /> },
   ];
 
