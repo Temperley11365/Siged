@@ -97,6 +97,10 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
     e.preventDefault();
     if (!nuevoNumero || !nuevaCaratula || !nuevoCliente) return;
 
+    let origenSistema: 'SIGED Misiones' | 'ANSES e-TRAMITE' | 'PJN - Justicia Federal' = 'SIGED Misiones';
+    if (nuevoFuero === 'ANSES / Previsional') origenSistema = 'ANSES e-TRAMITE';
+    if (nuevoFuero === 'Justicia Federal') origenSistema = 'PJN - Justicia Federal';
+
     const nuevoExp: Expediente = {
       id: `EXP-${Math.floor(Math.random() * 9000 + 1000)}`,
       numero: nuevoNumero,
@@ -110,11 +114,14 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
       fecha_inicio: new Date().toISOString().split('T')[0],
       estado: 'En trámite',
       cliente: nuevoCliente,
+      sistemaOrigen: origenSistema,
+      numeroExpedienteAnses: nuevoFuero === 'ANSES / Previsional' ? nuevoNumero : undefined,
+      numeroExpedientePJN: nuevoFuero === 'Justicia Federal' ? nuevoNumero : undefined,
       partes: [
         { id: `P-${Date.now()}`, nombre: nuevoCliente, rol: 'Actor/a', letrado_patrocinante: abogadoActual.nombre },
       ],
       movimientos: [
-        { id: `M-${Date.now()}`, fecha: new Date().toISOString().split('T')[0], tipo: 'Inicio de Actuaciones', descripcion: 'Sorteo e ingreso de carátula en el portal SIGED Misiones.', firmante: abogadoActual.nombre },
+        { id: `M-${Date.now()}`, fecha: new Date().toISOString().split('T')[0], tipo: 'Inicio de Actuaciones', descripcion: `Sorteo e ingreso de carátula en ${origenSistema}.`, firmante: abogadoActual.nombre },
       ],
       financiero: {
         honorariosPactados: 3000000,
@@ -200,11 +207,13 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
               onChange={(e) => setFiltroFuero(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-2 text-xs text-slate-200 focus:ring-1 focus:ring-blue-500 font-mono"
             >
-              <option value="todos">Todos los Fueros</option>
+              <option value="todos">Todos los Fueros / Sistemas</option>
               <option value="Civil y Comercial">Civil y Comercial</option>
               <option value="Laboral">Laboral</option>
               <option value="Familia">Familia</option>
               <option value="Caducidades y Concursos">Caducidades y Concursos</option>
+              <option value="ANSES / Previsional">ANSES / Previsional</option>
+              <option value="Justicia Federal">Justicia Federal (PJN)</option>
             </select>
           </div>
 
@@ -267,12 +276,27 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
             >
               <div className="space-y-3">
                 {/* Header Badge & Number */}
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="text-xs font-mono font-bold text-blue-400 bg-blue-600/20 border border-blue-500/30 px-2.5 py-0.5 rounded">
-                      EXPTE N° {exp.numero}
-                    </span>
-                    <span className="text-[10px] text-slate-400 ml-2 font-mono uppercase tracking-wider block sm:inline mt-1 sm:mt-0">
+                <div className="flex items-start justify-between flex-wrap gap-2">
+                  <div className="flex flex-col space-y-1">
+                    <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                      <span className="text-xs font-mono font-bold text-blue-400 bg-blue-600/20 border border-blue-500/30 px-2.5 py-0.5 rounded">
+                        EXPTE N° {exp.numero}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-900/40 text-blue-300 border border-blue-700/50">
+                        {exp.fuero}
+                      </span>
+                      {exp.sistemaOrigen === 'ANSES e-TRAMITE' && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-purple-950 text-purple-300 border border-purple-800">
+                          ANSES e-TRAMITE
+                        </span>
+                      )}
+                      {exp.sistemaOrigen === 'PJN - Justicia Federal' && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-amber-950 text-amber-300 border border-amber-800">
+                          PJN Federal
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block">
                       {exp.circunscripcion}
                     </span>
                   </div>
@@ -436,6 +460,8 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
                     <option value="Laboral">Laboral</option>
                     <option value="Familia">Familia</option>
                     <option value="Caducidades y Concursos">Caducidades y Concursos</option>
+                    <option value="ANSES / Previsional">ANSES / Previsional</option>
+                    <option value="Justicia Federal">Justicia Federal</option>
                   </select>
                 </div>
 

@@ -61,15 +61,22 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
 
   const handleInterpolarEscrito = (modelo: ModeloEscritoRepositorio) => {
     let txt = modelo.contenidoPlantilla;
+    const actorParte = expediente.partes.find(p => p.rol === 'Actor/a');
+    const cuilTitular = expediente.cuilTitularAnses || actorParte?.dni_cuit || '20-12345678-9';
+    const numAnses = expediente.numeroExpedienteAnses || expediente.numero;
+
     txt = txt
       .replace(/{NUMERO_EXPTE}/g, expediente.numero)
+      .replace(/{NUMERO_EXPTE_ANSES}/g, numAnses)
+      .replace(/{CUIL_TITULAR}/g, cuilTitular)
+      .replace(/{MATRICULA}/g, 'F° 102 C.P.A.M.')
       .replace(/{CARATULA}/g, expediente.caratula)
       .replace(/{JUZGADO}/g, expediente.juzgado)
       .replace(/{CLIENTE}/g, expediente.cliente)
       .replace(/{LETRADO_PATROCINANTE}/g, expediente.letrado_patrocinante)
       .replace(/{CIRCUNSCRIPCION}/g, expediente.circunscripcion)
       .replace(/{DEMANDADO}/g, expediente.partes.find(p => p.rol === 'Demandado/a')?.nombre || 'LA DEMANDADA')
-      .replace(/{ACTOR}/g, expediente.partes.find(p => p.rol === 'Actor/a')?.nombre || expediente.cliente);
+      .replace(/{ACTOR}/g, actorParte?.nombre || expediente.cliente);
     
     setModeloParaGenerar(modelo);
     setTextoGeneradoModal(txt);
@@ -240,6 +247,12 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
                     <strong className="text-slate-200">{expediente.juzgado}</strong>
                   </div>
                   <div>
+                    <span className="text-slate-500 block text-[10px] uppercase">Plataforma / Sistema Origen:</span>
+                    <strong className="text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-2 py-0.5 rounded text-[11px]">
+                      {expediente.sistemaOrigen || 'SIGED Misiones'}
+                    </strong>
+                  </div>
+                  <div>
                     <span className="text-slate-500 block text-[10px] uppercase">Circunscripción Judicial:</span>
                     <strong className="text-slate-200">{expediente.circunscripcion}</strong>
                   </div>
@@ -247,6 +260,36 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
                     <span className="text-slate-500 block text-[10px] uppercase">Fecha de Inicio de Causa:</span>
                     <strong className="text-slate-200">{expediente.fecha_inicio}</strong>
                   </div>
+                  {expediente.cuilTitularAnses && (
+                    <div>
+                      <span className="text-slate-500 block text-[10px] uppercase">CUIL Titular (ANSES):</span>
+                      <strong className="text-amber-400">{expediente.cuilTitularAnses}</strong>
+                    </div>
+                  )}
+                  {expediente.numeroExpedienteAnses && (
+                    <div>
+                      <span className="text-slate-500 block text-[10px] uppercase">N° e-Trámite ANSES:</span>
+                      <strong className="text-purple-400">{expediente.numeroExpedienteAnses}</strong>
+                    </div>
+                  )}
+                  {expediente.numeroExpedientePJN && (
+                    <div>
+                      <span className="text-slate-500 block text-[10px] uppercase">N° Expediente PJN Federal:</span>
+                      <strong className="text-blue-400">{expediente.numeroExpedientePJN}</strong>
+                    </div>
+                  )}
+                  {expediente.camaraFederalPJN && (
+                    <div>
+                      <span className="text-slate-500 block text-[10px] uppercase">Cámara Federal de Alzada:</span>
+                      <strong className="text-slate-300">{expediente.camaraFederalPJN}</strong>
+                    </div>
+                  )}
+                  {expediente.sistemaDeoxActivo && (
+                    <div>
+                      <span className="text-slate-500 block text-[10px] uppercase">Oficios Digitales DEOX:</span>
+                      <strong className="text-emerald-400">Activo (Firma Ley 26.685)</strong>
+                    </div>
+                  )}
                   <div>
                     <span className="text-slate-500 block text-[10px] uppercase">Letrado Patrocinante:</span>
                     <strong className="text-blue-400">{expediente.letrado_patrocinante}</strong>

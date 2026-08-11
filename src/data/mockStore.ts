@@ -343,6 +343,82 @@ export const INITIAL_EXPEDIENTES: Expediente[] = [
       saldoPendiente: 8000000,
     },
   },
+  {
+    id: 'EXP-5001',
+    numero: '024-20384192-3/1',
+    caratula: 'MARTINEZ ROSA C/ ANSES S/ REAJUSTE DE HABERES Y MOBILIDAD JUBILATORIA',
+    juzgado: 'Unidad de Atención Virtual ANSES - UDAI Posadas',
+    fuero: 'ANSES / Previsional',
+    circunscripcion: 'Primera (Posadas)',
+    etapa_procesal: 'Iniciación / Demanda',
+    abogados_autorizados: ['ABG-001', 'ABG-002'],
+    letrado_patrocinante: 'ABG-002',
+    apoderado: 'ABG-001',
+    fecha_inicio: '2026-05-10',
+    estado: 'En trámite',
+    cliente: 'Rosa Martínez',
+    sistemaOrigen: 'ANSES e-TRAMITE',
+    numeroExpedienteAnses: '024-20384192-3/1',
+    cuilTitularAnses: '27-05839201-4',
+    partes: [
+      { id: 'P-50', nombre: 'Rosa Martínez', rol: 'Actor/a', dni_cuit: '27-05839201-4', letrado_patrocinante: 'Dra. María Elena Gómez' },
+      { id: 'P-51', nombre: 'ANSES (Administración Nacional de la Seguridad Social)', rol: 'Demandado/a', dni_cuit: '33-63761744-9' },
+    ],
+    movimientos: [
+      { id: 'M-50', fecha: '2026-08-01', tipo: 'Atención Virtual ANSES', descripcion: 'Presentación de vista de liquidación Badaro/Elliff con Clave de Seguridad Social Nivel 3.', firmante: 'Estudio Jurídico Posadas & Asoc.' },
+      { id: 'M-51', fecha: '2026-05-10', tipo: 'Generación e-Trámite', descripcion: 'Alta de Reclamo Administrativo Previsional en Plataforma ANSES Digital.', firmante: 'ANSES UDAI Posadas' },
+    ],
+    financiero: {
+      honorariosPactados: 1800000,
+      honorariosRegulados: 0,
+      honorariosCobrados: 600000,
+      tasaDeJusticiaMisiones: 0,
+      tasaJusticiaPagada: true,
+      aportesCajaForense: 0,
+      aportesCajaAbogados: 0,
+      gastosDiligenciamiento: 15000,
+      saldoPendiente: 1200000,
+    },
+  },
+  {
+    id: 'EXP-5002',
+    numero: 'FPO 48291/2026',
+    caratula: 'MARTINEZ ROSA C/ ESTADO NACIONAL - ANSES S/ AMPARO POR MORA PREVISIONAL',
+    juzgado: 'Juzgado Federal de Primera Instancia N° 1 de Posadas',
+    fuero: 'Justicia Federal',
+    circunscripcion: 'Primera (Posadas)',
+    etapa_procesal: 'Traba de la Litis / Contestación',
+    abogados_autorizados: ['ABG-001', 'ABG-002'],
+    letrado_patrocinante: 'ABG-001',
+    apoderado: 'ABG-002',
+    fecha_inicio: '2026-06-18',
+    estado: 'Con plazo pendiente',
+    cliente: 'Rosa Martínez',
+    sistemaOrigen: 'PJN - Justicia Federal',
+    numeroExpedientePJN: 'FPO 048291/2026',
+    camaraFederalPJN: 'Cámara Federal de Apelaciones de Resistencia',
+    sistemaDeoxActivo: true,
+    partes: [
+      { id: 'P-60', nombre: 'Rosa Martínez', rol: 'Actor/a', dni_cuit: '27-05839201-4', letrado_patrocinante: 'Dr. Juan Manuel Posadas' },
+      { id: 'P-61', nombre: 'Estado Nacional - ANSES Legales', rol: 'Demandado/a', dni_cuit: '33-63761744-9', domicilio_constituido: 'DEOX - Dirección General de Asuntos Jurídicos ANSES' },
+      { id: 'P-62', nombre: 'Fiscalía Federal N° 1 Posadas', rol: 'Tercero' },
+    ],
+    movimientos: [
+      { id: 'M-60', fecha: '2026-08-02', tipo: 'Diligenciamiento DEOX Digital', descripcion: 'Emisión y transmisión de cédula electrónica DEOX a ANSES con traslado por 5 días hábiles.', firmante: 'Secretaría N° 1 Juzgado Federal Posadas' },
+      { id: 'M-61', fecha: '2026-06-18', tipo: 'Carga Portal PJN', descripcion: 'Sorteo e inicio de demanda de Amparo por Mora Ley 19.549 en fuero Federal.', firmante: 'Dr. Juan Manuel Posadas' },
+    ],
+    financiero: {
+      honorariosPactados: 3500000,
+      honorariosRegulados: 2800000,
+      honorariosCobrados: 1000000,
+      tasaDeJusticiaMisiones: 0,
+      tasaJusticiaPagada: true,
+      aportesCajaForense: 15000,
+      aportesCajaAbogados: 12000,
+      gastosDiligenciamiento: 20000,
+      saldoPendiente: 2500000,
+    },
+  },
 ];
 
 export const INITIAL_PRUEBAS: PruebaExpediente[] = [
@@ -1053,6 +1129,268 @@ SERÁ JUSTICIA.`,
         orden: 5,
         titulo: 'Inscripción en el Registro de la Propiedad Inmueble y Adjudicación',
         descripcion: 'Inscribir el inmueble a nombre de los herederos y regular honorarios del letrado.',
+        diasEstimados: 10,
+        obligatorio: true,
+      },
+    ]
+  },
+  {
+    id: 'REP-006',
+    titulo: 'Reclamo Administrativo de Reajuste de Haberes Jubilatorios (ANSES e-TRAMITE)',
+    fuero: 'ANSES / Previsional',
+    tematica: 'Reajuste Previsional',
+    tipoExpediente: 'Reclamo Administrativo ANSES',
+    etapaProcesal: 'Iniciación / Demanda',
+    descripcion: 'Presentación formal de reclamo de movilidad previsional y recalculación de haber inicial ante la Administración Nacional de la Seguridad Social.',
+    autor: 'Dra. María Elena Gómez',
+    fechaCreacion: '2026-08-05',
+    etiquetas: ['ANSES', 'Previsional', 'Badaro', 'Elliff', 'e-Trámite', 'Jubilación'],
+    contenidoPlantilla: `SEÑOR DIRECTOR GENERAL DE LA ADMINISTRACIÓN NACIONAL DE LA SEGURIDAD SOCIAL (ANSES - UDAI POSADAS):
+
+{LETRADO_PATROCINANTE}, abogada apoderada/patrocinante de {CLIENTE}, CUIL N° {CUIL_TITULAR}, en el e-Trámite Administrativo N° {NUMERO_EXPTE}, constituyendo domicilio legal y digital en el Portal ANSES, ante Ud. me presento y digo:
+
+I. OBJETO:
+Vengo en tiempo y forma a interponer formal RECLAMO ADMINISTRATIVO PREVISIONAL Y REAJUSTE DE HABERES Y MOBILIDAD JUBILATORIA respecto del beneficio N° {NUMERO_EXPTE}, solicitando la readecuación del haber inicial conforme doctrina jurisprudencial de la Corte Suprema de Justicia de la Nación ("Badaro", "Elliff" y "Blanco").
+
+II. LIQUIDACIÓN DE DIFERENCIAS PREVISIONALES:
+Se adjunta estudio de recalculación de la Tasa de Sustitución de la Remuneración en Actividad y recomposición de topes máximos de los arts. 9 y 25 de la Ley 24.241.
+
+III. PETITORIO:
+1. Se tenga por presentado el Reclamo Administrativo con el alcance del art. 15 de la Ley 24.463.
+2. Se dicte resolución expresa denegatoria o se proceda al reajuste directo del haber mensual.
+
+PROVEER DE CONFORMIDAD,
+SERÁ JUSTICIA ADMINISTRATIVA.`,
+    pasosASeguir: [
+      {
+        id: 'PASO-006-1',
+        orden: 1,
+        titulo: 'Acreditación de Apoderamiento y Generación de e-Trámite ANSES',
+        descripcion: 'Carga de Carta Poder y Clave de Seguridad Social Nivel 3 en Atención Virtual ANSES.',
+        diasEstimados: 3,
+        escritoRecomendadoId: 'REP-006',
+        escritoRecomendadoNombre: 'Reclamo Administrativo ANSES',
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-006-2',
+        orden: 2,
+        titulo: 'Presentación de Vista del Expediente y Liquidación de Movilidad Badaro/Elliff',
+        descripcion: 'Anexo de cómputo ilustrativo de haberes devengados e índices aplicables.',
+        diasEstimados: 5,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-006-3',
+        orden: 3,
+        titulo: 'Vencimiento de Plazo de Resolución Administrativa ANSES (60 Días)',
+        descripcion: 'Vencimiento del término legal fijado por el art. 15 de la Ley 24.463 para expedirse.',
+        diasEstimados: 60,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-006-4',
+        orden: 4,
+        titulo: 'Notificación de DENEGATORIA o Silencio Administrativo de ANSES',
+        descripcion: 'Agotamiento de la vía administrativa para habilitar la instancia judicial federal.',
+        diasEstimados: 5,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-006-5',
+        orden: 5,
+        titulo: 'Habilitación de Instancia Judicial Federal ante el Juzgado Federal de Posadas',
+        descripcion: 'Interposición de la demanda en el Portal de Gestión Judicial Federal (PJN).',
+        diasEstimados: 10,
+        obligatorio: true,
+      },
+    ]
+  },
+  {
+    id: 'REP-007',
+    titulo: 'Solicitud de Reconocimiento de Servicios y Moratoria Jubilatoria Ley 27.705',
+    fuero: 'ANSES / Previsional',
+    tematica: 'Moratoria Previsional',
+    tipoExpediente: 'Jubilación con Moratoria',
+    etapaProcesal: 'Iniciación / Demanda',
+    descripcion: 'Tramitación de cómputo de años de aportes, liquidación SICAM e inscripción en Plan de Pago de Deuda Previsional.',
+    autor: 'Dr. Juan Manuel Posadas',
+    fechaCreacion: '2026-08-06',
+    etiquetas: ['ANSES', 'Moratoria', 'SICAM', 'AFIP', 'Jubilación'],
+    contenidoPlantilla: `SEÑOR JEFE DE UDAI ANSES POSADAS:
+
+{LETRADO_PATROCINANTE}, apoderado letrado de {CLIENTE}, CUIL {CUIL_TITULAR}, en el expediente administrativo N° {NUMERO_EXPTE}, digo:
+
+I. SOLICITUD DE BENEFICIO JUBILATORIO:
+Vengo a solicitar la liquidación e ingreso al Plan de Pago de Deuda Previsional Ley 27.705 a fin de completar la totalidad de los 30 años de aportes requeridos por el art. 19 de la Ley 24.241.
+
+II. CERTIFICACIONES Y SICAM:
+Acompaño certificación de servicios expedida por empleadores de la Provincia de Misiones y liquidación aceptada por la AFIP.
+
+PROVEER DE CONFORMIDAD.`,
+    pasosASeguir: [
+      {
+        id: 'PASO-007-1',
+        orden: 1,
+        titulo: 'Verificación de Aportes en Mi ANSES y Sistema Histórico de Trabajo',
+        descripcion: 'Revisión del historial laboral del afiliado y constancia de CUIL.',
+        diasEstimados: 2,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-007-2',
+        orden: 2,
+        titulo: 'Generación y Envío de Liquidación SICAM en Portal AFIP',
+        descripcion: 'Cálculo de moratoria previsional e imputación de períodos faltantes.',
+        diasEstimados: 4,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-007-3',
+        orden: 3,
+        titulo: 'Turno e-Trámite Presencial o Virtual en UDAI Posadas / Oberá',
+        descripcion: 'Ingreso del beneficio y firma de aceptación del Plan de Pago de Deuda Previsional.',
+        diasEstimados: 10,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-007-4',
+        orden: 4,
+        titulo: 'Acuerdo Concesorio del Beneficio y Liquidación de Primer Haber Jubilatorio',
+        descripcion: 'Cobro de la primera prestación jubilatoria en la entidad bancaria pagadora.',
+        diasEstimados: 30,
+        obligatorio: true,
+      },
+    ]
+  },
+  {
+    id: 'REP-008',
+    titulo: 'Demanda de Amparo por Mora Previsional contra ANSES (Justicia Federal - Portal PJN)',
+    fuero: 'Justicia Federal',
+    tematica: 'Amparo Previsional',
+    tipoExpediente: 'Amparo por Mora Ley 19.549',
+    etapaProcesal: 'Iniciación / Demanda',
+    descripcion: 'Acción de amparo judicial en el fuero Federal por mora injustificada de ANSES en resolver el expediente administrativo previsional.',
+    autor: 'Dr. Juan Manuel Posadas',
+    fechaCreacion: '2026-08-04',
+    etiquetas: ['PJN', 'Justicia Federal', 'Amparo por Mora', 'DEOX', 'ANSES', 'Cámara Federal'],
+    contenidoPlantilla: `SEÑOR JUEZ FEDERAL DE PRIMERA INSTANCIA DE POSADAS:
+
+{LETRADO_PATROCINANTE}, abogado matriculado en el Fuero Federal bajo el T° {MATRICULA}, por la representación acreditada de {CLIENTE}, en las actuaciones de Amparo por Mora, Expte. Federal N° {NUMERO_EXPTE} caratulado "{CARATULA}", ante V.S. me presento y digo:
+
+I. OBJETO:
+Vengo a promover formal DEMANDA DE AMPARO POR MORA (Art. 28 de la Ley 19.549 de Procedimientos Administrativos) contra la ADMINISTRACIÓN NACIONAL DE LA SEGURIDAD SOCIAL (ANSES), a fin de que V.S. ordene a la demandada despachar las actuaciones administrativas de reajuste de haberes N° {NUMERO_EXPTE_ANSES} dentro del plazo perentorio de DIEZ (10) DÍAS HÁBILES.
+
+II. PROCEDENCIA DEL AMPARO POR MORA:
+Se han agotado los plazos previstos en el art. 10 de la Ley 19.549 sin que la autoridad administrativa se haya pronunciado sobre la petición de la actora, vulnerando la garantía constitucional del Debido Proceso y de la Seguridad Social (art. 14 bis y 18 C.N.).
+
+III. OFICIO ELECTRÓNICO DEOX:
+Solicito que se ordene la emisión de cédula digital por el sistema DEOX (Diligenciamiento Electrónico Oficial) a la Dirección de Asuntos Jurídicos de ANSES para que produzca el informe sobre las causas de la demora.
+
+SERÁ JUSTICIA.`,
+    pasosASeguir: [
+      {
+        id: 'PASO-008-1',
+        orden: 1,
+        titulo: 'Sorteo e Inserción de Demanda en el Portal de Gestión Judicial Federal (PJN)',
+        descripcion: 'Carga de demanda y documentación con firma digital Ley 26.685.',
+        diasEstimados: 2,
+        escritoRecomendadoId: 'REP-008',
+        escritoRecomendadoNombre: 'Demanda Amparo por Mora Federal',
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-008-2',
+        orden: 2,
+        titulo: 'Asignación a Juzgado Federal N° 1 o N° 2 de Posadas',
+        descripcion: 'Notificación del auto de radicación en Secretaría Federal.',
+        diasEstimados: 2,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-008-3',
+        orden: 3,
+        titulo: 'Diligenciamiento de Cédula Digital DEOX a la Dirección Legal de ANSES',
+        descripcion: 'Requerimiento del informe previsto en el art. 10 de la Ley 16.986 por 5 días.',
+        diasEstimados: 5,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-008-4',
+        orden: 4,
+        titulo: 'Dictamen de la Fiscalía Federal e Intervención del Defensor Oficial',
+        descripcion: 'Dictamen fiscal de competencia federal e idoneidad de la vía elegida.',
+        diasEstimados: 5,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-008-5',
+        orden: 5,
+        titulo: 'Sentencia Definitiva y Orden Judicial de Pronto Despacho bajo Apercibimiento',
+        descripcion: 'Condena a ANSES para expedirse con imposición de costas y astreintes.',
+        diasEstimados: 10,
+        obligatorio: true,
+      },
+    ]
+  },
+  {
+    id: 'REP-009',
+    titulo: 'Acción de Amparo de Salud Federal contra PAMI / Incluir Salud',
+    fuero: 'Justicia Federal',
+    tematica: 'Amparo de Salud Federal',
+    tipoExpediente: 'Amparo de Salud con Cautelar',
+    etapaProcesal: 'Iniciación / Demanda',
+    descripcion: 'Petición urgente ante el fuero Federal para provisión inmediata de prótesis, medicamentos de alta complejidad o coberturas vitales de PAMI / Ministerio de Salud.',
+    autor: 'Dra. María Elena Gómez',
+    fechaCreacion: '2026-08-07',
+    etiquetas: ['PJN', 'Amparo', 'Salud', 'PAMI', 'Incluir Salud', 'Justicia Federal', 'Cautelar'],
+    contenidoPlantilla: `SEÑOR JUEZ FEDERAL DE POSADAS:
+
+{LETRADO_PATROCINANTE}, abogada defensora de {CLIENTE}, en los autos caratulados "{CARATULA}", Expte. N° {NUMERO_EXPTE}, ante V.S. respetuosamente digo:
+
+I. OBJETO - SOLICITA MEDIDA CAUTELAR INNOVATIVA URGENTE:
+Vengo a interponer ACCIÓN DE AMPARO DE SALUD CON MEDIDA CAUTELAR NO INNOVAR / INNOVATIVA contra PAMI / INCLUIR SALUD, a fin de que se ordene la provisión inmediata del tratamiento médico prescrito bajo apercibimiento de astreintes acumulativos diarios y denuncia penal por desobediencia.
+
+II. PELIGRO EN LA DEMORA Y VEROSIMILITUD DEL DERECHO:
+Se acompaña prescripción médica suscrita por profesional especialista y negativa expresa u omisión de la obra social nacional, comprometiendo de forma irreparable el derecho a la vida y a la salud (art. 75 inc. 22 C.N.).
+
+III. PETITORIO:
+1. Se disponga la habilitación de días y horas inhábiles en caso de receso.
+2. Se libre cédula electrónica DEOX con carácter de urgente.
+
+SERÁ JUSTICIA.`,
+    pasosASeguir: [
+      {
+        id: 'PASO-009-1',
+        orden: 1,
+        titulo: 'Carga Urgente en Portal PJN con Solicitud de Cautelar e Habilitación de Horas',
+        descripcion: 'Ingreso prioritario con indicación de riesgo severo de salud.',
+        diasEstimados: 1,
+        escritoRecomendadoId: 'REP-009',
+        escritoRecomendadoNombre: 'Amparo de Salud Federal',
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-009-2',
+        orden: 2,
+        titulo: 'Resolución de Cautelar Innovativa y Cédula DEOX Urgente a PAMI / Estado Nacional',
+        descripcion: 'Notificación oficial electrónica con plazo de 24-48 horas para cumplimiento.',
+        diasEstimados: 2,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-009-3',
+        orden: 3,
+        titulo: 'Constatación de Cumplimiento Médico / Intimación con Astreintes Diarios',
+        descripcion: 'Sanción pecuniaria por día de retardo en la entrega de medicamentos o prótesis.',
+        diasEstimados: 3,
+        obligatorio: true,
+      },
+      {
+        id: 'PASO-009-4',
+        orden: 4,
+        titulo: 'Sentencia Definitiva del Amparo de Salud y Confirmación en Cámara Federal',
+        descripcion: 'Sentencia de mérito ordenando la cobertura integral del 100%.',
         diasEstimados: 10,
         obligatorio: true,
       },

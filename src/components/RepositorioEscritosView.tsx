@@ -70,15 +70,22 @@ export const RepositorioEscritosView: React.FC<RepositorioEscritosViewProps> = (
   // Helper to interpolate placeholders for selected expediente
   const interpolarTexto = (modelo: ModeloEscritoRepositorio, exp: Expediente): string => {
     let txt = modelo.contenidoPlantilla;
+    const actorParte = exp.partes.find(p => p.rol === 'Actor/a');
+    const cuilTitular = exp.cuilTitularAnses || actorParte?.dni_cuit || '20-12345678-9';
+    const numAnses = exp.numeroExpedienteAnses || exp.numero;
+
     txt = txt
       .replace(/{NUMERO_EXPTE}/g, exp.numero)
+      .replace(/{NUMERO_EXPTE_ANSES}/g, numAnses)
+      .replace(/{CUIL_TITULAR}/g, cuilTitular)
+      .replace(/{MATRICULA}/g, abogadoActual.matricula || 'F° 102 C.P.A.M.')
       .replace(/{CARATULA}/g, exp.caratula)
       .replace(/{JUZGADO}/g, exp.juzgado)
       .replace(/{CLIENTE}/g, exp.cliente)
       .replace(/{LETRADO_PATROCINANTE}/g, exp.letrado_patrocinante || abogadoActual.nombre)
       .replace(/{CIRCUNSCRIPCION}/g, exp.circunscripcion)
       .replace(/{DEMANDADO}/g, exp.partes.find(p => p.rol === 'Demandado/a')?.nombre || 'LA DEMANDADA')
-      .replace(/{ACTOR}/g, exp.partes.find(p => p.rol === 'Actor/a')?.nombre || exp.cliente);
+      .replace(/{ACTOR}/g, actorParte?.nombre || exp.cliente);
     return txt;
   };
 
@@ -230,6 +237,8 @@ export const RepositorioEscritosView: React.FC<RepositorioEscritosViewProps> = (
               <option value="Laboral" className="bg-slate-900">Laboral</option>
               <option value="Familia" className="bg-slate-900">Familia</option>
               <option value="Caducidades y Concursos" className="bg-slate-900">Caducidades y Concursos</option>
+              <option value="ANSES / Previsional" className="bg-slate-900">ANSES / Previsional</option>
+              <option value="Justicia Federal" className="bg-slate-900">Justicia Federal</option>
             </select>
           </div>
 
@@ -632,6 +641,8 @@ export const RepositorioEscritosView: React.FC<RepositorioEscritosViewProps> = (
                   <option value="Laboral">Laboral</option>
                   <option value="Familia">Familia</option>
                   <option value="Caducidades y Concursos">Caducidades y Concursos</option>
+                  <option value="ANSES / Previsional">ANSES / Previsional</option>
+                  <option value="Justicia Federal">Justicia Federal</option>
                 </select>
               </div>
 

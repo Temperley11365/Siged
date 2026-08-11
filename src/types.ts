@@ -80,7 +80,13 @@ export interface OidcSessionState {
 // -------------------------------------------------------------
 // 2. Ficha Completa del Expediente & Estado Financiero
 // -------------------------------------------------------------
-export type FueroJudicial = 'Civil y Comercial' | 'Laboral' | 'Familia' | 'Caducidades y Concursos';
+export type FueroJudicial = 
+  | 'Civil y Comercial' 
+  | 'Laboral' 
+  | 'Familia' 
+  | 'Caducidades y Concursos' 
+  | 'ANSES / Previsional' 
+  | 'Justicia Federal';
 export type CircunscripcionJudicial = 
   | 'Primera (Posadas)'
   | 'Segunda (Oberá)'
@@ -143,6 +149,12 @@ export interface Expediente {
   partes: ParteInterviniente[];
   movimientos: MovimientoExpediente[];
   financiero: EstadoFinancieroCausa;
+  sistemaOrigen?: 'SIGED Misiones' | 'ANSES e-TRAMITE' | 'PJN - Justicia Federal';
+  numeroExpedienteAnses?: string;
+  cuilTitularAnses?: string;
+  numeroExpedientePJN?: string;
+  camaraFederalPJN?: string;
+  sistemaDeoxActivo?: boolean;
 }
 
 // -------------------------------------------------------------
