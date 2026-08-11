@@ -4,6 +4,7 @@ import {
   Copy, Download, Edit3, Sparkles, Folder, ArrowRight, Tag, ShieldCheck, CheckSquare, Eye, X, Send, Award
 } from 'lucide-react';
 import { ModeloEscritoRepositorio, PasoProcesalGuia, Expediente, Abogado, DocumentoEstudio } from '../types';
+import { copiarTextoConFormatoSiged, descargarDocxFormatoSiged } from '../utils/exportUtils';
 
 interface RepositorioEscritosViewProps {
   modelos: ModeloEscritoRepositorio[];
@@ -106,10 +107,16 @@ export const RepositorioEscritosView: React.FC<RepositorioEscritosViewProps> = (
     }
   };
 
-  const handleCopiarTexto = (texto: string) => {
-    navigator.clipboard.writeText(texto);
-    setCopiadoExito(true);
-    setTimeout(() => setCopiadoExito(false), 2000);
+  const handleCopiarTexto = async (texto: string) => {
+    const ok = await copiarTextoConFormatoSiged(texto);
+    if (ok) {
+      setCopiadoExito(true);
+      setTimeout(() => setCopiadoExito(false), 2500);
+    }
+  };
+
+  const handleDescargarDocx = async (texto: string, titulo: string) => {
+    await descargarDocxFormatoSiged(texto, titulo);
   };
 
   const handleConfirmarGuardarEnExpediente = () => {
@@ -462,10 +469,10 @@ export const RepositorioEscritosView: React.FC<RepositorioEscritosViewProps> = (
 
                     <button
                       onClick={() => handleCopiarTexto(modeloDetalle.contenidoPlantilla)}
-                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs font-mono transition-colors flex items-center space-x-1.5"
+                      className="px-3 py-1.5 bg-blue-900/40 hover:bg-blue-800/60 border border-blue-500/40 text-blue-300 rounded text-xs font-mono font-bold transition-colors flex items-center space-x-1.5"
                     >
                       <Copy className="w-3.5 h-3.5 text-blue-400" />
-                      <span>{copiadoExito ? '¡Copiado!' : 'Copiar Plantilla'}</span>
+                      <span>{copiadoExito ? '¡Copiado con Formato SIGED!' : 'Copiar con Formato SIGED'}</span>
                     </button>
                   </div>
 
@@ -542,17 +549,36 @@ export const RepositorioEscritosView: React.FC<RepositorioEscritosViewProps> = (
 
             {/* Interpolated Preview */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-bold text-slate-300 font-mono">
                   Vista Previa del Escrito Interpolado:
                 </span>
-                <button
-                  onClick={() => handleCopiarTexto(textoInterpoladoPreview)}
-                  className="text-xs text-blue-400 hover:underline font-mono flex items-center space-x-1"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>{copiadoExito ? '¡Copiado!' : 'Copiar Texto'}</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleCopiarTexto(textoInterpoladoPreview)}
+                    className="px-3 py-1 bg-blue-900/50 hover:bg-blue-800/60 border border-blue-500/40 text-blue-300 rounded text-xs font-mono font-bold flex items-center space-x-1.5 transition-colors"
+                    title="Copia el escrito al portapapeles conservando márgenes judiciales de 5cm e interlineado 1.5 para pegar en SIGED / Word"
+                  >
+                    <Copy className="w-3.5 h-3.5 text-blue-400" />
+                    <span>{copiadoExito ? '¡Copiado con Márgenes SIGED!' : 'Copiar con Formato SIGED'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleDescargarDocx(textoInterpoladoPreview, modeloParaExpediente.titulo)}
+                    className="px-3 py-1 bg-emerald-900/50 hover:bg-emerald-800/60 border border-emerald-500/40 text-emerald-300 rounded text-xs font-mono font-bold flex items-center space-x-1.5 transition-colors"
+                    title="Descarga documento .docx configurado con márgenes superiores e izquierdos de 5cm, interlineado 1.5 y Times New Roman 12pt"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Descargar .docx SIGED</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-amber-950/30 border border-amber-800/50 p-2 rounded-lg text-[11px] font-mono text-amber-300 flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-amber-400" />
+                <span>
+                  <strong>Formato Judicial SIGED Activo:</strong> Márgenes (Sup: 5cm, Izq: 5cm, Der: 1.5cm, Inf: 2.5cm) • Interlineado 1.5 • Times New Roman 12pt.
+                </span>
               </div>
 
               <textarea

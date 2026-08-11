@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DocumentoEstudio, PlantillaDocx, Expediente } from '../types';
-import { Folder, FileText, Download, Eye, FileCheck, Plus, Sparkles, Copy, FileCode, Edit3 } from 'lucide-react';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { Folder, FileText, Download, Eye, FileCheck, Plus, Sparkles, Copy, FileCode, Edit3, ShieldCheck } from 'lucide-react';
+import { copiarTextoConFormatoSiged, descargarDocxFormatoSiged } from '../utils/exportUtils';
 
 interface DocumentosEditorViewProps {
   documentos: DocumentoEstudio[];
@@ -25,6 +25,7 @@ export const DocumentosEditorView: React.FC<DocumentosEditorViewProps> = ({
   const [tituloEditor, setTituloEditor] = useState(plantillas[0]?.nombre || 'Nuevo Escrito Judicial');
   const [contenidoEditor, setContenidoEditor] = useState(plantillas[0]?.contenidoPlantilla || plantillas[0]?.contenidoDefault || '');
   const [isExportingDocx, setIsExportingDocx] = useState(false);
+  const [copiadoExito, setCopiadoExito] = useState(false);
 
   // Filter docs by folder
   const documentosFiltrados = documentos.filter((d) => {
@@ -66,61 +67,21 @@ export const DocumentosEditorView: React.FC<DocumentosEditorViewProps> = ({
     }
   };
 
-  // NATIVE DOCX GENERATION USING `docx` LIBRARY
+  const handleCopiarFormatoSiged = async () => {
+    const ok = await copiarTextoConFormatoSiged(contenidoEditor);
+    if (ok) {
+      setCopiadoExito(true);
+      setTimeout(() => setCopiadoExito(false), 2500);
+    }
+  };
+
+  // NATIVE DOCX GENERATION USING `docx` LIBRARY WITH SIGED JUDICIAL MARGINS
   const handleDescargarDocxNativo = async () => {
     setIsExportingDocx(true);
     try {
-      const lineas = contenidoEditor.split('\n');
-
-      const doc = new Document({
-        sections: [
-          {
-            properties: {},
-            children: lineas.map((linea) => {
-              const trimmed = linea.trim();
-              if (trimmed.startsWith('PROVEER DE CONFORMIDAD') || trimmed.startsWith('SERA JUSTICIA')) {
-                return new Paragraph({
-                  children: [new TextRun({ text: trimmed, bold: true, font: 'Times New Roman', size: 24 })],
-                  alignment: AlignmentType.CENTER,
-                  spacing: { before: 200, after: 200 },
-                });
-              }
-
-              if (trimmed === trimmed.toUpperCase() && trimmed.length > 5 && !trimmed.includes('.')) {
-                return new Paragraph({
-                  children: [new TextRun({ text: trimmed, bold: true, font: 'Times New Roman', size: 26 })],
-                  alignment: AlignmentType.CENTER,
-                  spacing: { before: 140, after: 140 },
-                });
-              }
-
-              return new Paragraph({
-                children: [new TextRun({ text: linea, font: 'Times New Roman', size: 24 })],
-                spacing: { line: 360, after: 120 }, // 1.5 line spacing
-              });
-            }),
-          },
-        ],
-      });
-
-      const blob = await Packer.toBlob(doc);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${tituloEditor.replace(/[^a-zA-Z0-9_-]/g, '_')}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await descargarDocxFormatoSiged(contenidoEditor, tituloEditor);
     } catch (err) {
       console.error('Error generando archivo .docx:', err);
-      // Fallback text download
-      const blob = new Blob([contenidoEditor], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${tituloEditor}.doc`;
-      a.click();
     } finally {
       setIsExportingDocx(false);
     }
@@ -247,7 +208,16 @@ export const DocumentosEditorView: React.FC<DocumentosEditorViewProps> = ({
                 <span>Editor de Escritos & Generador .docx NATIVO</span>
               </h3>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleCopiarFormatoSiged}
+                  className="px-3 py-1.5 bg-blue-900/40 hover:bg-blue-800/60 border border-blue-500/40 text-blue-300 rounded text-xs font-mono font-bold flex items-center space-x-1.5 transition-colors"
+                  title="Copia el escrito al portapapeles conservando márgenes de 5cm, Times New Roman 12pt e interlineado 1.5 para pegar en SIGED"
+                >
+                  <Copy className="w-3.5 h-3.5 text-blue-400" />
+                  <span>{copiadoExito ? '¡Copiado con Márgenes SIGED!' : 'Copiar con Formato SIGED'}</span>
+                </button>
+
                 <button
                   onClick={handleDescargarTxt}
                   className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-mono font-bold flex items-center space-x-1"
@@ -259,9 +229,10 @@ export const DocumentosEditorView: React.FC<DocumentosEditorViewProps> = ({
                   onClick={handleDescargarDocxNativo}
                   disabled={isExportingDocx}
                   className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-mono font-bold flex items-center space-x-1 shadow-md"
+                  title="Descarga documento .docx con márgenes superiores e izquierdos de 5cm, interlineado 1.5 e idéntico formato judicial SIGED"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>{isExportingDocx ? 'Generando...' : 'Descargar .docx'}</span>
+                  <span>{isExportingDocx ? 'Generando...' : 'Descargar .docx SIGED'}</span>
                 </button>
               </div>
             </div>

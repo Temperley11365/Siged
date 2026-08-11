@@ -68,8 +68,39 @@ export default function App() {
   const [diasInhabiles, setDiasInhabiles] = useState<DiaInhabil[]>(INITIAL_DIAS_INHABILES);
   const [documentos, setDocumentos] = useState<DocumentoEstudio[]>(INITIAL_DOCUMENTOS);
   const [plantillas] = useState<PlantillaDocx[]>(INITIAL_PLANTILLAS_DOCX);
-  const [modelosRepositorio, setModelosRepositorio] = useState<ModeloEscritoRepositorio[]>(INITIAL_REPOSITORIO_ESCRITOS);
-  const [progresosPasos, setProgresosPasos] = useState<ProgresoPasosExpediente[]>(INITIAL_PROGRESO_PASOS);
+  const [modelosRepositorio, setModelosRepositorio] = useState<ModeloEscritoRepositorio[]>(() => {
+    const saved = localStorage.getItem('siged_modelos_repositorio');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error('Error al cargar modelos del localStorage:', e);
+      }
+    }
+    return INITIAL_REPOSITORIO_ESCRITOS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('siged_modelos_repositorio', JSON.stringify(modelosRepositorio));
+  }, [modelosRepositorio]);
+
+  const [progresosPasos, setProgresosPasos] = useState<ProgresoPasosExpediente[]>(() => {
+    const saved = localStorage.getItem('siged_progresos_pasos');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {
+        console.error('Error al cargar progresos del localStorage:', e);
+      }
+    }
+    return INITIAL_PROGRESO_PASOS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('siged_progresos_pasos', JSON.stringify(progresosPasos));
+  }, [progresosPasos]);
 
   // SIGED Notifications & Sync Stores
   const [notificacionesPush, setNotificacionesPush] = useState<NotificacionPushSiged[]>(INITIAL_NOTIFICACIONES_PUSH);
@@ -518,10 +549,22 @@ export default function App() {
           <RepositorioEscritosView
             modelos={modelosRepositorio}
             expedientes={expedientes}
-            progresosPasos={progresosPasos}
-            onAgregarModelo={handleAgregarModeloRepositorio}
-            onTogglePasoCompletado={handleTogglePasoCompletado}
-            onGuardarDocumentoExpediente={handleGuardarDocumentoExpediente}
+            abogadoActual={abogadoActual}
+            onCrearModelo={handleAgregarModeloRepositorio}
+            onUsarModeloEnExpediente={(modelo, exp, texto) => {
+              const doc: DocumentoEstudio = {
+                id: `DOC-${Date.now()}`,
+                nombre: `${modelo.titulo} - Expte ${exp.numero}`,
+                expediente_id: exp.id,
+                carpeta: exp.id,
+                tipoArchivo: 'docx',
+                tamanio: '38 KB',
+                fecha_modificacion: new Date().toISOString().split('T')[0],
+                autor: abogadoActual.nombre,
+                contenidoTexto: texto,
+              };
+              handleGuardarDocumento(doc);
+            }}
             onAbrirEditorConTexto={handleAbrirEditorConTexto}
           />
         )}
