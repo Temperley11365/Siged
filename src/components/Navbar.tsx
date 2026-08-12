@@ -98,11 +98,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Scale className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-sm font-bold tracking-tight text-white uppercase flex items-center space-x-1.5 font-sans">
-                <span>SIGED</span>
-                <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-mono font-normal">Misiones</span>
+              <h1 className="text-base font-black tracking-wider text-white font-sans uppercase leading-none">
+                Kairos
               </h1>
-              <span className="text-[10px] text-slate-400 font-mono block">Sistema Jurídico Unificado</span>
+              <span className="text-[10px] text-blue-400 font-mono block tracking-widest uppercase font-semibold mt-0.5">
+                Estudio Jurídico
+              </span>
             </div>
           </div>
 

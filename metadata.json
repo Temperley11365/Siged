@@ -1,6 +1,6 @@
 {
-  "name": "SIGED - Motor de Inteligencia Procesal Misiones",
-  "description": "Motor de inteligencia procesal y gestión de expedientes del Poder Judicial de Misiones (SIGED) con control multiusuario, cálculo de plazos en días hábiles y notificaciones automatizadas.",
+  "name": "Kairos - Estudio Jurídico",
+  "description": "Sistema de gestión integral para estudio jurídico (Kairos) con motor de inteligencia procesal, seguimiento de expedientes, portales ANSES/PJN y notificaciones automatizadas.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
