@@ -353,6 +353,51 @@ export interface ProgresoPasosExpediente {
 }
 
 // -------------------------------------------------------------
+// Portales Externos (ANSES & PJN Federal) y Alertas Programables
+// -------------------------------------------------------------
+export type PortalTipo = 'ANSES e-TRAMITE' | 'PJN - Justicia Federal' | 'DEOX (Oficios Digitales)' | 'AFIP / Vega' | 'AFIP / SiPyME';
+
+export interface PasoHistorialPortal {
+  id: string;
+  fecha: string;
+  estado: string;
+  observacion: string;
+  usuarioPortal?: string;
+  oficinaOrganismo?: string;
+}
+
+export interface TramitePortalExterno {
+  id: string;
+  expediente_id?: string;
+  portal: PortalTipo;
+  numeroTramite: string; // e.g. "018-20-12345678-9-152-1" or "FPO 12345/2024"
+  cuilDniTitular: string;
+  nombreTitular: string;
+  tipoTramite: string; // e.g. "Jubilación Ordinaria Ley 24.241", "Reajuste de Haberes - Badaro", "Acción de Amparo Federal", "Oficio DEOX"
+  estadoActual: string;
+  fechaUltimoEstado: string;
+  pasosHistorial: PasoHistorialPortal[];
+  observaciones?: string;
+  archivosAdjuntosCount?: number;
+  camaraFederal?: string;
+  deoxEstado?: 'Pendiente Firma' | 'Diligenciado' | 'Contestado';
+}
+
+export interface AlertaPushProgramable {
+  id: string;
+  titulo: string;
+  mensaje: string;
+  fechaHoraProgramada: string; // YYYY-MM-DD HH:mm
+  expediente_id?: string;
+  expediente_numero?: string;
+  clienteDniNombre?: string;
+  tipo: 'CEDULA' | 'RESOLUCION' | 'INTIMACION' | 'PROVEIDO' | 'CADUCIDAD' | 'GENERAL' | 'ANSES_TURNO' | 'PJN_VENCIMIENTO';
+  prioridad: 'Baja' | 'Media' | 'Alta' | 'Urgente';
+  estado: 'Programada' | 'Enviada' | 'Cancelada';
+  fechaCreacion: string;
+}
+
+// -------------------------------------------------------------
 // Actuacion y Procesamiento SIGED AI
 // -------------------------------------------------------------
 export interface ActuacionSIGED {

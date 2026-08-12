@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { 
   Zap, FileText, Scale, Calendar, CheckSquare, Folder, Code, Key, UserCheck, 
   ShieldCheck, ChevronDown, Bell, RefreshCw, Settings, Check, ExternalLink, Cpu, ShieldAlert,
-  Users, UserPlus, LogIn, LogOut, Shield, Sun, Moon, BookOpen
+  Users, UserPlus, LogIn, LogOut, Shield, Sun, Moon, BookOpen, Globe
 } from 'lucide-react';
 import { Abogado, OidcSessionState, NotificacionPushSiged } from '../types';
 
 export type TabId = 
   | 'motor' 
   | 'expedientes' 
+  | 'portales_externos'
   | 'pruebas' 
   | 'audiencias' 
   | 'tareas' 
@@ -58,6 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: 'motor', label: 'Motor SIGED', icon: <Zap className="w-4 h-4 text-amber-400" /> },
     { id: 'expedientes', label: 'Expedientes', icon: <FileText className="w-4 h-4 text-blue-400" /> },
+    { id: 'portales_externos', label: 'Portales ANSES & PJN', icon: <Globe className="w-4 h-4 text-teal-400" /> },
     { id: 'pruebas', label: 'Pruebas', icon: <Scale className="w-4 h-4 text-emerald-400" /> },
     { id: 'audiencias', label: 'Audiencias', icon: <Calendar className="w-4 h-4 text-purple-400" /> },
     { id: 'tareas', label: 'Tareas', icon: <CheckSquare className="w-4 h-4 text-indigo-400" /> },

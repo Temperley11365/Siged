@@ -1412,3 +1412,91 @@ export const INITIAL_PROGRESO_PASOS: ProgresoPasosExpediente[] = [
     fechaUltimaActualizacion: '2026-08-02 11:30',
   }
 ];
+
+export const INITIAL_TRAMITES_PORTALES = [
+  {
+    id: 'TRM-101',
+    expediente_id: 'EXP-5001',
+    portal: 'ANSES e-TRAMITE' as const,
+    numeroTramite: '024-20384192-3/1',
+    cuilDniTitular: '27-05839201-4',
+    nombreTitular: 'Rosa Martínez',
+    tipoTramite: 'Reajuste de Haberes y Movilidad Previsional (Doctrina Badaro / Elliff)',
+    estadoActual: 'En Cómputos - UDAI Posadas (Esperando Dictamen Legal)',
+    fechaUltimoEstado: '2026-08-05',
+    pasosHistorial: [
+      { id: 'PH-1', fecha: '2026-05-10', estado: 'Alta e-Trámite', observacion: 'Ingreso formal en la plataforma de Atención Virtual ANSES con Clave Nivel 3.', usuarioPortal: 'Dra. María Elena Gómez' },
+      { id: 'PH-2', fecha: '2026-06-02', estado: 'Acreditación de Representación', observacion: 'Aprobación de la Carta Poder N° 4022 en UDAI Posadas.', usuarioPortal: 'Mesa de Entrada ANSES' },
+      { id: 'PH-3', fecha: '2026-08-05', estado: 'Pase a Mesa de Cómputos', observacion: 'Derivación técnica para cálculo de diferencia de haber con índice RIPTE/Elliff.', usuarioPortal: 'Agente Previsional ANSES' }
+    ],
+    observaciones: 'Si no hay resolución en 60 días hábiles, queda expedita la vía del Amparo por Mora en fuero Federal.',
+    archivosAdjuntosCount: 4,
+  },
+  {
+    id: 'TRM-102',
+    expediente_id: 'EXP-5002',
+    portal: 'PJN - Justicia Federal' as const,
+    numeroTramite: 'FPO 048291/2026',
+    cuilDniTitular: '27-05839201-4',
+    nombreTitular: 'Rosa Martínez',
+    tipoTramite: 'Amparo por Mora Previsional Ley 19.549 (Justicia Federal)',
+    estadoActual: 'Diligenciamiento Cédula DEOX Digital a Asuntos Jurídicos ANSES',
+    fechaUltimoEstado: '2026-08-08',
+    camaraFederal: 'Cámara Federal de Apelaciones de Resistencia',
+    deoxEstado: 'Diligenciado' as const,
+    pasosHistorial: [
+      { id: 'PH-10', fecha: '2026-06-18', estado: 'Ingreso Portal PJN', observacion: 'Demanda de Amparo iniciada con firma digital Ley 26.685.', usuarioPortal: 'Dr. Juan Manuel Posadas' },
+      { id: 'PH-11', fecha: '2026-07-02', estado: 'Radicación Juzgado Federal Posadas N° 1', observacion: 'Fijación de la Secretaría N° 1 en lo Contencioso Administrativo.', usuarioPortal: 'Mesa de Entradas PJN' },
+      { id: 'PH-12', fecha: '2026-08-08', estado: 'Oficio DEOX Enviado', observacion: 'Emisión de cédula electrónica con apercibimiento de astreintes.', usuarioPortal: 'Secretaría N° 1 Federal' }
+    ],
+    observaciones: 'Causa tramitada con habilitación de firma electrónica ante la Cámara Federal de Resistencia.',
+    archivosAdjuntosCount: 6,
+  },
+  {
+    id: 'TRM-103',
+    portal: 'DEOX (Oficios Digitales)' as const,
+    numeroTramite: 'DEOX-88391/2026',
+    cuilDniTitular: '20-14920481-9',
+    nombreTitular: 'Alberto Gómez',
+    tipoTramite: 'Oficio Requerimiento de Habilitación Comercial Municipal',
+    estadoActual: 'Contestado y Acompañado a Autos',
+    fechaUltimoEstado: '2026-08-10',
+    deoxEstado: 'Contestado' as const,
+    pasosHistorial: [
+      { id: 'PH-20', fecha: '2026-07-26', estado: 'Generación de Oficio DEOX', observacion: 'Oficio de prueba informativa creado en sistema judicial.', usuarioPortal: 'Dra. María Elena Gómez' },
+      { id: 'PH-21', fecha: '2026-08-10', estado: 'Respuesta Registrada', observacion: 'Remisión de informe de inspección en formato PDF firmado por la Municipalidad.', usuarioPortal: 'Registro DEOX Comunal' }
+    ],
+    observaciones: 'Prueba informativa contestada dentro del plazo legal de 5 días.',
+    archivosAdjuntosCount: 2,
+  }
+];
+
+export const INITIAL_ALERTAS_PROGRAMABLES = [
+  {
+    id: 'ALT-001',
+    titulo: 'Vencimiento Contestación DEOX ANSES',
+    mensaje: 'Vence el plazo de 5 días hábiles otorgado a la Dirección Jurídica de ANSES para responder el Amparo por Mora de Rosa Martínez.',
+    fechaHoraProgramada: '2026-08-15 10:00',
+    expediente_id: 'EXP-5002',
+    expediente_numero: 'FPO 48291/2026',
+    clienteDniNombre: '27-05839201-4 - Rosa Martínez',
+    tipo: 'PJN_VENCIMIENTO' as const,
+    prioridad: 'Urgente' as const,
+    estado: 'Programada' as const,
+    fechaCreacion: '2026-08-08 12:00',
+  },
+  {
+    id: 'ALT-002',
+    titulo: 'Turno Presencial UDAI ANSES Posadas',
+    mensaje: 'Turno en UDAI Posadas para presentar liquidación SICAM y firma de Moratoria Ley 27.705.',
+    fechaHoraProgramada: '2026-08-18 09:15',
+    expediente_id: 'EXP-5001',
+    expediente_numero: '024-20384192-3/1',
+    clienteDniNombre: '27-05839201-4 - Rosa Martínez',
+    tipo: 'ANSES_TURNO' as const,
+    prioridad: 'Alta' as const,
+    estado: 'Programada' as const,
+    fechaCreacion: '2026-08-10 09:00',
+  }
+];
+
