@@ -22,7 +22,57 @@ export const DEFAULT_OIDC_SESSION: OidcSessionState = {
 
 export const INITIAL_ACTUACIONES: ActuacionSIGED[] = [];
 
-export const INITIAL_ABOGADOS: Abogado[] = [];
+export const INITIAL_ABOGADOS: Abogado[] = [
+  {
+    id: 'ADMIN-001',
+    nombre: 'JyE Sender Servicios (Administrador)',
+    matricula: 'ADMIN-001 • JyE Servicios',
+    rol: 'Administrador',
+    email: 'jye.sender2023@gmail.com',
+    password: 'AdminSender2023!',
+    telefono: '+54 9 376 400-0000',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    esAdmin: true,
+    activo: true,
+    fechaRegistro: '2026-01-10 08:00',
+    preguntaSecreta: '¿Cuál es el servicio de administración del sistema?',
+    respuestaSecreta: 'JyE Sender Servicios',
+    credencialesSiged: {
+      usuarioSiged: 'admin.jyesender',
+      claveSiged: '••••••••••••',
+      pinCertificadoDigital: '990182',
+      estadoConexion: 'Conectado',
+      ultimaSincronizacion: '2026-08-20 09:30',
+      sincronizacionAutomatica: true,
+      frecuenciaMinutos: 15,
+      notificacionesPushWeb: true,
+    },
+  },
+  {
+    id: 'ABG-001',
+    nombre: 'Dr. Alejandro Posadas',
+    matricula: 'T° 14 F° 230 C.P.A.M.',
+    rol: 'Socio',
+    email: 'aposadas@estudioposadas.com.ar',
+    password: 'posadas_legal_2026',
+    telefono: '+54 9 376 455-8899',
+    avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
+    activo: true,
+    fechaRegistro: '2026-02-15 10:30',
+    preguntaSecreta: '¿Cuál es la ciudad donde se ubica la sede central del estudio?',
+    respuestaSecreta: 'Posadas',
+    credencialesSiged: {
+      usuarioSiged: 'aposadas.siged',
+      claveSiged: '••••••••••••',
+      pinCertificadoDigital: '884192',
+      estadoConexion: 'Conectado',
+      ultimaSincronizacion: '2026-08-20 08:45',
+      sincronizacionAutomatica: true,
+      frecuenciaMinutos: 15,
+      notificacionesPushWeb: true,
+    },
+  },
+];
 
 export const INITIAL_NOTIFICACIONES_PUSH: NotificacionPushSiged[] = [];
 

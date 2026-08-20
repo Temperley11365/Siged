@@ -16,6 +16,7 @@ import { NotificacionToastPopup } from './components/NotificacionToastPopup';
 import { AuthModal } from './components/AuthModal';
 import { AuthScreen } from './components/AuthScreen';
 import { AsignacionAsociadosModal } from './components/AsignacionAsociadosModal';
+import { AdminPanelModal } from './components/AdminPanelModal';
 
 import { 
   Abogado, 
@@ -323,6 +324,7 @@ export default function App() {
   // Authentication & Associate Access Modals
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAsociadosModalOpen, setIsAsociadosModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [expedienteModalAsociados, setExpedienteModalAsociados] = useState<Expediente | null>(null);
 
   const handleLoginSuccess = (abogado: Abogado) => {
@@ -848,6 +850,7 @@ export default function App() {
         onOpenPerfilModal={() => setIsPerfilModalOpen(true)}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onOpenAsociadosModal={() => handleAbrirAsociadosModal()}
+        onOpenAdminModal={() => setIsAdminModalOpen(true)}
         onLogout={handleLogout}
         oidcSession={oidcSession}
         notificacionesPush={notificacionesPush}
@@ -1029,6 +1032,19 @@ export default function App() {
         abogadoActual={abogadoActual}
         onGuardarAutorizaciones={handleGuardarAutorizacionesSiged}
         expedienteInicial={expedienteModalAsociados}
+      />
+
+      {/* Modal de Administración General (JyE Sender Servicios) */}
+      <AdminPanelModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        abogadoActual={abogadoActual}
+        abogados={abogados}
+        onActualizarAbogados={(nuevos) => {
+          setAbogados(nuevos);
+          localStorage.setItem('kairos_abogados', JSON.stringify(nuevos));
+        }}
+        onSincronizarSiged={handleSincronizarSiged}
       />
 
       {/* Ventanas Emergentes (Toast Popups) de Notificaciones & Movimientos SIGED */}

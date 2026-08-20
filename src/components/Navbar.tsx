@@ -26,6 +26,7 @@ interface NavbarProps {
   onOpenPerfilModal: () => void;
   onOpenAuthModal: () => void;
   onOpenAsociadosModal: () => void;
+  onOpenAdminModal?: () => void;
   onLogout?: () => void;
   oidcSession: OidcSessionState;
   notificacionesPush: NotificacionPushSiged[];
@@ -44,6 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPerfilModal,
   onOpenAuthModal,
   onOpenAsociadosModal,
+  onOpenAdminModal,
   onLogout,
   oidcSession,
   notificacionesPush,
@@ -57,6 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const esAdmin = abogadoActual.email.toLowerCase() === 'jye.sender2023@gmail.com' || abogadoActual.rol === 'Administrador' || abogadoActual.esAdmin;
   const sinLeerCount = notificacionesPush.filter((n) => !n.leida).length;
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
@@ -111,6 +114,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Top Actions: Sync Button, Push Bell, Lawyer Profile & Mobile Hamburger */}
           <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Quick Admin Button (Only for jye.sender2023@gmail.com / Administrador) */}
+            {esAdmin && onOpenAdminModal && (
+              <button
+                onClick={onOpenAdminModal}
+                className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 rounded-xl text-xs font-mono font-bold flex items-center space-x-1.5 transition-all shadow-md animate-pulse cursor-pointer"
+                title="Abrir Panel de Administración General JyE Sender Servicios"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Panel Admin</span>
+              </button>
+            )}
+
             {/* Quick Sync SIGED Button (Hidden on tiny screens, available in mobile menu) */}
             <button
               onClick={onSincronizarSiged}
@@ -273,6 +288,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
 
                   <div className="p-[6px] space-y-1">
+                    {/* Admin Panel Option */}
+                    {esAdmin && onOpenAdminModal && (
+                      <button
+                        onClick={() => {
+                          setIsUserDropdownOpen(false);
+                          onOpenAdminModal();
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-amber-200 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/40 flex items-center space-x-2.5 transition-colors mb-1"
+                      >
+                        <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+                        <div>
+                          <strong className="block text-xs text-amber-300">Panel de Administración General</strong>
+                          <span className="text-[10px] text-amber-400/80">Usuarios, blanqueo y servidores</span>
+                        </div>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => {
                         setIsUserDropdownOpen(false);
@@ -434,6 +466,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-[10px] uppercase tracking-wider text-slate-500 px-2 font-bold block">
                 Accesos y Configuración:
               </span>
+
+              {esAdmin && onOpenAdminModal && (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onOpenAdminModal();
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-amber-200 bg-amber-950/50 border border-amber-500/40 flex items-center space-x-2.5 font-bold"
+                >
+                  <ShieldAlert className="w-4 h-4 text-amber-400" />
+                  <span>Panel de Administración General</span>
+                </button>
+              )}
 
               <button
                 onClick={() => {

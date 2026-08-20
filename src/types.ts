@@ -1,4 +1,4 @@
-export type RolAbogado = 'Socio' | 'Asociado';
+export type RolAbogado = 'Administrador' | 'Socio' | 'Asociado';
 
 export interface CredencialesSIGED {
   usuarioSiged: string;
@@ -21,6 +21,35 @@ export interface Abogado {
   telefono: string;
   avatarUrl?: string;
   credencialesSiged?: CredencialesSIGED;
+  preguntaSecreta?: string;
+  respuestaSecreta?: string;
+  esAdmin?: boolean;
+  fechaRegistro?: string;
+  activo?: boolean;
+}
+
+export interface EstadoServidor {
+  nombre: string;
+  endpoint: string;
+  estado: 'Operativo' | 'Advertencia' | 'Critico' | 'Desconectado';
+  latenciaMs: number;
+  uptime: string;
+  detalles: string;
+  ultimaVerificacion: string;
+}
+
+export interface ReporteSaludServidores {
+  servidores: EstadoServidor[];
+  memoriaUsoMb: number;
+  cpuUsoPorcentaje: number;
+  totalPeticionesHoy: number;
+  sincronizacionDaemon: {
+    estado: 'Corriendo' | 'En Pausa' | 'Error';
+    intervaloMinutos: number;
+    ultimoBarrido: string;
+    proximoBarrido: string;
+    expedientesMonitoreados: number;
+  };
 }
 
 export interface NotificacionPushSiged {
