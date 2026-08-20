@@ -45,7 +45,12 @@ export function isHabilJudicial(date: Date, customInhabiles: DiaInhabil[] = []):
   return true;
 }
 
-export function formatFechaEsp(date: Date): string {
+export function formatFechaEsp(dateInput: Date | string): string {
+  if (!dateInput) return '';
+  const date = typeof dateInput === 'string'
+    ? new Date(dateInput.includes('T') ? dateInput : `${dateInput}T12:00:00`)
+    : dateInput;
+  if (isNaN(date.getTime())) return String(dateInput);
   const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   return `${dias[date.getDay()]} ${date.getDate()} de ${meses[date.getMonth()]} de ${date.getFullYear()}`;

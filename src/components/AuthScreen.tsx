@@ -159,18 +159,26 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     setLoading(true);
     let nuevoAbogado: Abogado | null = null;
     const tieneCredsSiged = !!(regUsuarioSiged.trim() && regClaveSiged.trim());
-    const esAdminUser = regEmail.toLowerCase() === 'jye.sender2023@gmail.com' || regRol === 'Administrador';
+    const hayAdmin = abogadosExistentes.some((a) => a.rol === 'Administrador' || a.esAdmin || a.email.toLowerCase() === 'jye.sender2023@gmail.com');
+    const esAdminUser = regEmail.toLowerCase() === 'jye.sender2023@gmail.com' || (!hayAdmin && regRol === 'Administrador');
+
+    let nombreFinal = regNombre.trim();
+    if (!/^Dr(a)?\./i.test(nombreFinal)) {
+      nombreFinal = `Dr. ${nombreFinal}`;
+    }
+
+    const rolFinal: RolAbogado = esAdminUser ? 'Administrador' : (regRol === 'Administrador' ? 'Socio' : regRol);
 
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nombre: regNombre.trim(),
+          nombre: nombreFinal,
           email: regEmail.trim(),
           password: regPassword.trim(),
           matricula: regMatricula.trim(),
-          rol: esAdminUser ? 'Administrador' : regRol,
+          rol: rolFinal,
           telefono: regTelefono.trim(),
           usuarioSiged: regUsuarioSiged.trim(),
           claveSiged: regClaveSiged.trim(),
@@ -202,11 +210,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     if (!nuevoAbogado) {
       nuevoAbogado = {
         id: `ABG-${Date.now().toString().slice(-4)}`,
-        nombre: regNombre.trim(),
+        nombre: nombreFinal,
         email: regEmail.trim(),
         password: regPassword.trim(),
         matricula: regMatricula.trim(),
-        rol: esAdminUser ? 'Administrador' : regRol,
+        rol: rolFinal,
         esAdmin: esAdminUser,
         telefono: regTelefono.trim() || '+5493764000000',
         preguntaSecreta: regPreguntaSecreta,
@@ -920,9 +928,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         {tab === 'registro' && (
           <form onSubmit={handleRegistroSubmit} className="space-y-4 font-mono">
             <div>
-              <label className="block text-[11px] uppercase tracking-wider text-slate-400 mb-1 font-bold">
-                Nombre y Apellido Completo *
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">
+                  Nombre y Apellido del Abogado *
+                </label>
+                <span className="text-[10px] text-blue-400 font-bold bg-blue-950/70 px-2 py-0.5 rounded border border-blue-800/40">
+                  Prefijo requerido: Dr.
+                </span>
+              </div>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
                 <input
@@ -930,10 +943,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   required
                   value={regNombre}
                   onChange={(e) => setRegNombre(e.target.value)}
-                  placeholder="Dr. / Dra. Nombre y Apellido"
+                  placeholder="Dr. Nombre y Apellido"
                   className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 transition-all placeholder:text-slate-600"
                 />
               </div>
+              {regNombre.trim() && !/^Dr(a)?\./i.test(regNombre.trim()) && (
+                <p className="text-[10px] text-blue-300 mt-1 font-mono">
+                  Se registrará automáticamente como: <strong className="text-white">Dr. {regNombre.trim()}</strong>
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -959,14 +977,21 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   Rol en el Estudio *
                 </label>
                 <select
-                  value={regRol}
+                  value={regRol === 'Administrador' && abogadosExistentes.some((a) => a.rol === 'Administrador' || a.esAdmin || a.email.toLowerCase() === 'jye.sender2023@gmail.com') ? 'Socio' : regRol}
                   onChange={(e) => setRegRol(e.target.value as RolAbogado)}
                   className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 transition-all"
                 >
-                  <option value="Socio">Socio Director (Acceso Total)</option>
-                  <option value="Asociado">Abogado Asociado</option>
-                  <option value="Administrador">Administrador del Sistema</option>
+                  <option value="Socio">Dr. Socio Director (Abogado)</option>
+                  <option value="Asociado">Dr. Abogado Asociado</option>
+                  {!abogadosExistentes.some((a) => a.rol === 'Administrador' || a.esAdmin || a.email.toLowerCase() === 'jye.sender2023@gmail.com') && (
+                    <option value="Administrador">Administrador del Sistema</option>
+                  )}
                 </select>
+                {abogadosExistentes.some((a) => a.rol === 'Administrador' || a.esAdmin || a.email.toLowerCase() === 'jye.sender2023@gmail.com') && (
+                  <span className="text-[9px] text-slate-400 mt-1 block font-mono">
+                    Administrador registrado. Solo se admiten registros de Abogados.
+                  </span>
+                )}
               </div>
             </div>
 

@@ -62,7 +62,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   // Selected Day computed items
   const audienciasDelDia = diaSeleccionadoStr 
-    ? audiencias.filter((a) => a.fecha_hora.startsWith(diaSeleccionadoStr))
+    ? audiencias.filter((a) => a.fecha_hora && a.fecha_hora.startsWith(diaSeleccionadoStr))
     : [];
 
   const tareasDelDia = diaSeleccionadoStr

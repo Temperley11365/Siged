@@ -18,7 +18,9 @@ export const DocumentosEditorView: React.FC<DocumentosEditorViewProps> = ({
 }) => {
   const [carpetaSeleccionada, setCarpetaSeleccionada] = useState<string>('todas');
   const [docPreview, setDocPreview] = useState<DocumentoEstudio | null>(null);
+  const [vistaMobile, setVistaMobile] = useState<'carpetas' | 'editor'>('carpetas');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   // Editor State
   const [plantillaSeleccionada, setPlantillaSeleccionada] = useState<PlantillaDocx | null>(plantillas[0] || null);
@@ -66,6 +68,10 @@ export const DocumentosEditorView: React.FC<DocumentosEditorViewProps> = ({
         `SEÑOR/A JUEZ/A:\n\nEn autos caratulados:\n\nI.- OBJETO:\nQue por el presente escrito vengo a...\n\nII.- PETITORIO:\nPROVEER DE CONFORMIDAD,\nSERÁ JUSTICIA.`
       );
     }
+    setVistaMobile('editor');
+    setTimeout(() => {
+      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const handleCambiarExpediente = (expId: string) => {
@@ -254,9 +260,38 @@ export const DocumentosEditorView: React.FC<DocumentosEditorViewProps> = ({
         )}
       </div>
 
+      {/* Mobile Subtabs */}
+      <div className="flex lg:hidden bg-slate-900/90 p-1.5 rounded-xl border border-slate-800 font-mono text-xs gap-2">
+        <button
+          type="button"
+          onClick={() => setVistaMobile('carpetas')}
+          className={`flex-1 py-2.5 px-3 rounded-lg font-bold flex items-center justify-center space-x-2 transition-all ${
+            vistaMobile === 'carpetas'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Folder className="w-4 h-4" />
+          <span>Carpetas & Archivos ({documentosFiltrados.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setVistaMobile('editor')}
+          className={`flex-1 py-2.5 px-3 rounded-lg font-bold flex items-center justify-center space-x-2 transition-all ${
+            vistaMobile === 'editor'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Edit3 className="w-4 h-4 text-emerald-400" />
+          <span>Editor .docx</span>
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Folders & Document Library (5 Cols) */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className={`lg:col-span-5 space-y-4 ${vistaMobile === 'editor' ? 'hidden lg:block' : 'block'}`}>
           <div className="bg-slate-900 border border-slate-700/80 rounded-xl p-4 shadow-sm space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
@@ -357,6 +392,10 @@ export const DocumentosEditorView: React.FC<DocumentosEditorViewProps> = ({
                           onClick={() => {
                             setTituloEditor(doc.nombre);
                             setContenidoEditor(doc.contenidoTexto || '');
+                            setVistaMobile('editor');
+                            setTimeout(() => {
+                              editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 100);
                           }}
                           className="p-1.5 bg-slate-800 hover:bg-slate-700 text-blue-300 rounded text-[10px] font-mono"
                           title="Cargar en editor"
@@ -381,7 +420,7 @@ export const DocumentosEditorView: React.FC<DocumentosEditorViewProps> = ({
         </div>
 
         {/* Right: Editor .docx & Templates (7 Cols) */}
-        <div className="lg:col-span-7 space-y-4">
+        <div ref={editorRef} className={`lg:col-span-7 space-y-4 ${vistaMobile === 'carpetas' ? 'hidden lg:block' : 'block'}`}>
           <div className="bg-slate-900 border border-slate-700/80 rounded-xl p-6 shadow-sm space-y-4">
             {/* Top Toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">

@@ -84,13 +84,19 @@ async function startServer() {
     }
 
     const tieneCredsSiged = !!(usuarioSiged && usuarioSiged.trim() && claveSiged && claveSiged.trim());
-    const esAdminUser = email.toLowerCase() === 'jye.sender2023@gmail.com' || rol === 'Administrador';
+    const hayAdminExistente = abogadosStore.some((a) => a.rol === 'Administrador' || a.esAdmin || a.email.toLowerCase() === 'jye.sender2023@gmail.com');
+    const esAdminUser = email.toLowerCase() === 'jye.sender2023@gmail.com' || (!hayAdminExistente && rol === 'Administrador');
 
-    const rolFinal: RolAbogado = esAdminUser ? 'Administrador' : (rol as RolAbogado) || 'Asociado';
+    let nombreFinal = (nombre || '').trim();
+    if (!/^Dr(a)?\./i.test(nombreFinal)) {
+      nombreFinal = `Dr. ${nombreFinal}`;
+    }
+
+    const rolFinal: RolAbogado = esAdminUser ? 'Administrador' : (rol === 'Administrador' ? 'Socio' : (rol as RolAbogado) || 'Asociado');
 
     const nuevoAbogado: Abogado = {
       id: `ABG-${String(abogadosStore.length + 1).padStart(3, '0')}`,
-      nombre,
+      nombre: nombreFinal,
       email,
       password,
       matricula,
