@@ -16,22 +16,8 @@ import {
 } from '../types';
 
 export const DEFAULT_OIDC_SESSION: OidcSessionState = {
-  autenticado: true,
-  metodoAutenticacion: 'OIDC_SSO',
-  fechaAutenticacion: '2026-08-03 09:15:00',
-  tokenJwt: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkcl9wb3NhZGFzXzQxMDIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJqcG9zYWRhcyIsImVtYWlsIjoianBvc2FkYXNAZXN0dWRpb3Bvc2FkYXMuY29tLmFyIiwibmFtZSI6IkRyLiBKdWFuIE1hbnVlbCBQb3NhZGFzIiwibWF0cmljdWxhX2NwYW0iOiJNUDQxMDIiLCJyb2xlcyI6WyJTb2NpbyIsIkFib2dhZG9fQXBvZGVyYWRvIl0sImNpcmN1bnNjcmlwY2lvbiI6IlByaW1lcmEgKFBvc2FkYXMpIiwiZXhwZWRpZW50ZXNfYWNyZWRpdGFkb3MiOlsiRVhQLTE0MjAiLCJFWFAtODgyIiwiRVhQLTMxMDUiLCJFWFAtOTk0MSIsIkVYUC01MDQiXX0',
-  claims: {
-    sub: 'dr_posadas_4102',
-    preferred_username: 'jposadas',
-    email: 'jposadas@estudioposadas.com.ar',
-    name: 'Dr. Juan Manuel Posadas',
-    matricula_cpam: 'MP 4102 - CADAM',
-    roles: ['Socio', 'Abogado_Apoderado'],
-    circunscripcion: 'Primera (Posadas)',
-    expedientes_acreditados: ['EXP-1420', 'EXP-882', 'EXP-3105', 'EXP-9941', 'EXP-504'],
-    iat: 1785830000,
-    exp: 1785866000,
-  }
+  autenticado: false,
+  metodoAutenticacion: 'LOCAL',
 };
 
 export const INITIAL_ACTUACIONES: ActuacionSIGED[] = [
@@ -55,68 +41,7 @@ export const INITIAL_ACTUACIONES: ActuacionSIGED[] = [
   },
 ];
 
-export const INITIAL_ABOGADOS: Abogado[] = [
-  {
-    id: 'ABG-001',
-    nombre: 'Dr. Juan Manuel Posadas',
-    matricula: 'MP 4102 - CADAM',
-    rol: 'Socio',
-    email: 'jposadas@estudioposadas.com.ar',
-    password: '123456',
-    telefono: '+5493764123456',
-    avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
-    credencialesSiged: {
-      usuarioSiged: 'jposadas.cadam',
-      claveSiged: '••••••••••••',
-      pinCertificadoDigital: '884192',
-      estadoConexion: 'Conectado',
-      ultimaSincronizacion: '2026-08-03 16:45:00',
-      sincronizacionAutomatica: true,
-      frecuenciaMinutos: 15,
-      notificacionesPushWeb: true,
-    },
-  },
-  {
-    id: 'ABG-002',
-    nombre: 'Dra. María Elena Gómez',
-    matricula: 'MP 5890 - CADAM',
-    rol: 'Asociado',
-    email: 'mgomez@estudioposadas.com.ar',
-    password: '123456',
-    telefono: '+5493764987654',
-    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    credencialesSiged: {
-      usuarioSiged: 'mgomez.siged',
-      claveSiged: '••••••••••••',
-      pinCertificadoDigital: '441092',
-      estadoConexion: 'Conectado',
-      ultimaSincronizacion: '2026-08-03 15:30:00',
-      sincronizacionAutomatica: true,
-      frecuenciaMinutos: 30,
-      notificacionesPushWeb: true,
-    },
-  },
-  {
-    id: 'ABG-003',
-    nombre: 'Dr. Carlos Alberto Ruiz',
-    matricula: 'MP 6214 - CADAM',
-    rol: 'Asociado',
-    email: 'cruiz@estudioposadas.com.ar',
-    password: '123456',
-    telefono: '+5493764554433',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    credencialesSiged: {
-      usuarioSiged: 'cruiz.siged',
-      claveSiged: '••••••••••••',
-      pinCertificadoDigital: '109283',
-      estadoConexion: 'Pendiente',
-      ultimaSincronizacion: '2026-08-02 18:00:00',
-      sincronizacionAutomatica: false,
-      frecuenciaMinutos: 60,
-      notificacionesPushWeb: true,
-    },
-  },
-];
+export const INITIAL_ABOGADOS: Abogado[] = [];
 
 export const INITIAL_NOTIFICACIONES_PUSH: NotificacionPushSiged[] = [
   {

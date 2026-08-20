@@ -14,6 +14,7 @@ import { OidcAuthModal } from './components/OidcAuthModal';
 import { PerfilCredencialesModal } from './components/PerfilCredencialesModal';
 import { NotificacionToastPopup } from './components/NotificacionToastPopup';
 import { AuthModal } from './components/AuthModal';
+import { AuthScreen } from './components/AuthScreen';
 import { AsignacionAsociadosModal } from './components/AsignacionAsociadosModal';
 
 import { 
@@ -60,8 +61,32 @@ import {
 import { sendBrowserPushNotification } from './utils/pushNotifications';
 
 export default function App() {
-  const [abogados, setAbogados] = useState<Abogado[]>(INITIAL_ABOGADOS);
-  const [abogadoActual, setAbogadoActual] = useState<Abogado>(INITIAL_ABOGADOS[0]);
+  const [abogados, setAbogados] = useState<Abogado[]>(() => {
+    const saved = localStorage.getItem('kairos_abogados');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {
+        console.error('Error cargando abogados de localStorage:', e);
+      }
+    }
+    return INITIAL_ABOGADOS;
+  });
+
+  const [abogadoActual, setAbogadoActual] = useState<Abogado | null>(() => {
+    const savedAuth = localStorage.getItem('kairos_auth_user');
+    if (savedAuth) {
+      try {
+        const parsed = JSON.parse(savedAuth);
+        if (parsed && parsed.id) return parsed;
+      } catch (e) {
+        console.error('Error cargando usuario autenticado de localStorage:', e);
+      }
+    }
+    return null;
+  });
+
   const [activeTab, setActiveTab] = useState<TabId>('motor');
 
   // Stores
@@ -203,13 +228,49 @@ export default function App() {
 
   const handleLoginSuccess = (abogado: Abogado) => {
     setAbogadoActual(abogado);
+    localStorage.setItem('kairos_auth_user', JSON.stringify(abogado));
+    setAbogados((prev) => {
+      const exists = prev.some(
+        (a) => a.id === abogado.id || a.email.toLowerCase() === abogado.email.toLowerCase()
+      );
+      const updated = exists
+        ? prev.map((a) =>
+            a.id === abogado.id || a.email.toLowerCase() === abogado.email.toLowerCase() ? abogado : a
+          )
+        : [abogado, ...prev];
+      localStorage.setItem('kairos_abogados', JSON.stringify(updated));
+      return updated;
+    });
+    setIsAuthModalOpen(false);
+
     // Refresh list of lawyers from server
     fetch('/api/abogados')
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setAbogados(data);
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const ct = res.headers.get('content-type');
+        if (!ct || !ct.includes('application/json')) throw new Error('Respuesta no JSON');
+        return res.json();
       })
-      .catch((err) => console.log('Error cargando lista actualizada de abogados:', err));
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setAbogados((prev) => {
+            const merged = [...data];
+            prev.forEach((p) => {
+              if (!merged.some((m) => m.id === p.id || m.email.toLowerCase() === p.email.toLowerCase())) {
+                merged.push(p);
+              }
+            });
+            localStorage.setItem('kairos_abogados', JSON.stringify(merged));
+            return merged;
+          });
+        }
+      })
+      .catch((err) => console.log('Error refrescando abogados:', err));
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('kairos_auth_user');
+    setAbogadoActual(null);
   };
 
   const handleAbrirAsociadosModal = (expte?: Expediente) => {
@@ -258,11 +319,19 @@ export default function App() {
       })
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          setAbogados(data);
-          setAbogadoActual(data[0]);
+          setAbogados((prev) => {
+            const merged = [...data];
+            prev.forEach((p) => {
+              if (!merged.some((m) => m.id === p.id || m.email.toLowerCase() === p.email.toLowerCase())) {
+                merged.push(p);
+              }
+            });
+            localStorage.setItem('kairos_abogados', JSON.stringify(merged));
+            return merged;
+          });
         }
       })
-      .catch((err) => console.log('Usando store por defecto abogados:', err));
+      .catch((err) => console.log('Usando store local abogados:', err));
 
     fetch('/api/siged/notificaciones')
       .then((res) => {
@@ -290,6 +359,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!abogadoActual) return;
     fetch(`/api/expedientes?abogado_id=${abogadoActual.id}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -307,6 +377,7 @@ export default function App() {
 
   // Handler Executing Active SIGED Scan & Firing Web Push with Client-Side Fallback
   const handleSincronizarSiged = useCallback(async () => {
+    if (!abogadoActual) return;
     setIsSyncing(true);
     let syncExitoso = false;
 
@@ -632,6 +703,17 @@ export default function App() {
     });
   };
 
+  if (!abogadoActual) {
+    return (
+      <AuthScreen
+        onLoginSuccess={handleLoginSuccess}
+        abogadosExistentes={abogados}
+        abogadoActual={null}
+        isModal={false}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 grid-bg text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
       {/* Top Navbar */}
@@ -643,6 +725,7 @@ export default function App() {
         onOpenPerfilModal={() => setIsPerfilModalOpen(true)}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onOpenAsociadosModal={() => handleAbrirAsociadosModal()}
+        onLogout={handleLogout}
         oidcSession={oidcSession}
         notificacionesPush={notificacionesPush}
         onMarcarNotificacionLeida={handleMarcarNotificacionLeida}
@@ -836,7 +919,7 @@ export default function App() {
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 status-glow"></span>
             <span className="text-[11px] text-slate-400">
-              Estudio Posadas & Asociados • Sistema SIGED Misiones • CPCCyM
+              Kairos • Estudio Jurídico • Sistema SIGED Misiones • CPCCyM
             </span>
           </div>
           <span className="text-[10px] text-slate-500 uppercase tracking-widest">

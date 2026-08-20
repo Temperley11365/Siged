@@ -35,8 +35,8 @@ async function startServer() {
       // Normalize abogado input in case user sends flattened or nested properties
       const authUser = abogado_autenticado || {
         abogado_id: abogado_id || 'ABG-001',
-        nombre: nombre || 'Dr. Juan Manuel Posadas',
-        matricula: matricula || 'MP 4102 - CADAM',
+        nombre: nombre || 'Dr. Profesional Responsable',
+        matricula: matricula || 'MP CPAM',
         rol: rol || 'Socio',
       };
 

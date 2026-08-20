@@ -26,6 +26,7 @@ interface NavbarProps {
   onOpenPerfilModal: () => void;
   onOpenAuthModal: () => void;
   onOpenAsociadosModal: () => void;
+  onLogout?: () => void;
   oidcSession: OidcSessionState;
   notificacionesPush: NotificacionPushSiged[];
   onMarcarNotificacionLeida: (id: string) => void;
@@ -43,6 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPerfilModal,
   onOpenAuthModal,
   onOpenAsociadosModal,
+  onLogout,
   oidcSession,
   notificacionesPush,
   onMarcarNotificacionLeida,
@@ -326,6 +328,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <span className="text-[10px] text-slate-400">IDP idm.jusmisiones.gov.ar</span>
                       </div>
                     </button>
+
+                    {onLogout && (
+                      <button
+                        onClick={() => {
+                          setIsUserDropdownOpen(false);
+                          onLogout();
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-xl text-rose-300 hover:bg-rose-950/40 border-t border-slate-800 flex items-center space-x-2.5 transition-colors mt-1"
+                      >
+                        <LogOut className="w-4 h-4 text-rose-400" />
+                        <div>
+                          <strong className="block text-xs">Cerrar Sesión</strong>
+                          <span className="text-[10px] text-rose-400/80">Salir al inicio de sesión</span>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -460,6 +478,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <ShieldCheck className="w-4 h-4 text-purple-400" />
                 <span>Autenticación Keycloak OIDC</span>
               </button>
+
+              {onLogout && (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onLogout();
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-rose-300 bg-rose-950/20 border border-rose-500/30 hover:bg-rose-900/40 flex items-center space-x-2.5 transition-colors"
+                >
+                  <LogOut className="w-4 h-4 text-rose-400" />
+                  <span>Cerrar Sesión</span>
+                </button>
+              )}
             </div>
           </div>
         )}
