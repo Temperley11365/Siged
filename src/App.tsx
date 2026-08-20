@@ -489,11 +489,11 @@ export default function App() {
     }
 
     setIsSyncing(false);
-  }, [abogadoActual.id, expedientes.length]);
+  }, [abogadoActual?.id, expedientes.length]);
 
   // Periodic Auto-Sync Timer
   useEffect(() => {
-    if (!abogadoActual.credencialesSiged?.sincronizacionAutomatica) return;
+    if (!abogadoActual?.credencialesSiged?.sincronizacionAutomatica) return;
 
     // Run auto-sync every 60 seconds
     const interval = setInterval(() => {
@@ -504,6 +504,8 @@ export default function App() {
   }, [abogadoActual, handleSincronizarSiged]);
 
   const handleGuardarCredencialesSiged = async (nuevasCreds: CredencialesSIGED) => {
+    if (!abogadoActual) return;
+
     const credsActualizadas: CredencialesSIGED = {
       ...nuevasCreds,
       ultimaSincronizacion: new Date().toISOString().replace('T', ' ').substring(0, 16),

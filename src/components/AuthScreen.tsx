@@ -21,7 +21,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   isModal = false,
   onClose,
 }) => {
-  const [tab, setTab] = useState<'login' | 'registro'>('login');
+  const [tab, setTab] = useState<'login' | 'registro'>(() =>
+    abogadosExistentes && abogadosExistentes.length > 0 ? 'login' : 'registro'
+  );
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -225,6 +227,35 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     }, 900);
   };
 
+  const handleDemoDirectorAccess = () => {
+    setLoading(true);
+    setSuccessMsg('Iniciando sesión directa como Dr. Alejandro Posadas (Socio Director)...');
+    setTimeout(() => {
+      const abogadoDemo: Abogado = {
+        id: 'ABG-001',
+        nombre: 'Dr. Alejandro Posadas',
+        email: 'aposadas@estudioposadas.com.ar',
+        matricula: 'T° 14 F° 230 C.P.A.M.',
+        rol: 'Socio',
+        telefono: '+54 9 376 455-8899',
+        avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
+        credencialesSiged: {
+          usuarioSiged: 'aposadas.siged',
+          claveSiged: '••••••••••••',
+          pinCertificadoDigital: '884192',
+          estadoConexion: 'Conectado',
+          ultimaSincronizacion: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          sincronizacionAutomatica: true,
+          frecuenciaMinutos: 15,
+          notificacionesPushWeb: true,
+        },
+      };
+      onLoginSuccess(abogadoDemo);
+      if (onClose) onClose();
+      setLoading(false);
+    }, 500);
+  };
+
   const content = (
     <div className="w-full max-w-xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden font-sans text-slate-100 flex flex-col">
       {/* Brand Header */}
@@ -417,8 +448,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               </div>
             )}
 
-            {/* OIDC Keycloak Option */}
-            <div className="pt-4 border-t border-slate-800 mt-4">
+            {/* Quick Demo & OIDC Options */}
+            <div className="pt-4 border-t border-slate-800 mt-4 space-y-2">
+              <button
+                type="button"
+                onClick={handleDemoDirectorAccess}
+                disabled={loading}
+                className="w-full py-2.5 px-4 bg-blue-950/40 hover:bg-blue-900/50 border border-blue-500/40 hover:border-blue-500/70 rounded-xl text-blue-300 text-xs font-mono font-bold flex items-center justify-center space-x-2 transition-all shadow-sm"
+              >
+                <Sparkles className="w-4 h-4 text-blue-400" />
+                <span>Acceso Rápido como Abogado Titular (Demo)</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleOidcQuickAuth}
@@ -589,6 +630,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 </>
               )}
             </button>
+
+            <div className="pt-2 border-t border-slate-800 space-y-2">
+              <button
+                type="button"
+                onClick={handleDemoDirectorAccess}
+                disabled={loading}
+                className="w-full py-2.5 px-4 bg-blue-950/30 hover:bg-blue-900/40 border border-blue-500/30 hover:border-blue-500/60 rounded-xl text-blue-300 text-xs font-mono font-bold flex items-center justify-center space-x-2 transition-all"
+              >
+                <Sparkles className="w-4 h-4 text-blue-400" />
+                <span>Acceso Rápido como Abogado Titular (Demo)</span>
+              </button>
+            </div>
 
             <div className="text-center pt-1">
               <button
