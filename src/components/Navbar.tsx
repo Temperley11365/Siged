@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Zap, FileText, Scale, Calendar, CheckSquare, Folder, Code, Key, UserCheck, 
   ShieldCheck, ChevronDown, Bell, RefreshCw, Settings, Check, ExternalLink, Cpu, ShieldAlert,
-  Users, UserPlus, LogIn, LogOut, Shield, Sun, Moon, BookOpen, Globe, Menu, X
+  Users, UserPlus, LogIn, LogOut, Shield, Sun, Moon, BookOpen, Globe, Menu, X, Bot
 } from 'lucide-react';
 import { Abogado, OidcSessionState, NotificacionPushSiged } from '../types';
 
@@ -16,7 +16,8 @@ export type TabId =
   | 'agenda' 
   | 'documentos' 
   | 'repositorio'
-  | 'api_explorer';
+  | 'api_explorer'
+  | 'chatbot_clientes';
 
 interface NavbarProps {
   activeTab: TabId;
@@ -73,6 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'documentos', label: 'Gestor & .docx', icon: <Folder className="w-4 h-4 text-cyan-400" /> },
     { id: 'repositorio', label: 'Repositorio & Guías', icon: <BookOpen className="w-4 h-4 text-amber-400" /> },
     { id: 'api_explorer', label: 'API Explorer', icon: <Code className="w-4 h-4 text-rose-400" /> },
+    { id: 'chatbot_clientes', label: 'Chatbot Clientes', icon: <Bot className="w-4 h-4 text-emerald-400" /> },
   ];
 
   const handleNotificationClick = (notif: NotificacionPushSiged) => {

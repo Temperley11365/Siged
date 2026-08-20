@@ -2,13 +2,17 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { procesarNotificacionSiged } from './src/server/sigedEngine';
-import { Abogado, RolAbogado } from './src/types';
+import { procesarConsultaChatbot } from './src/server/chatbotEngine';
+import { Abogado, RolAbogado, ConfiguracionChatbot, RegistroConsultaChatbot } from './src/types';
 import { 
   INITIAL_ABOGADOS, 
   INITIAL_EXPEDIENTES, 
   INITIAL_ACTUACIONES, 
   INITIAL_NOTIFICACIONES_PUSH, 
-  INITIAL_REGISTROS_SINCRONIZACION 
+  INITIAL_REGISTROS_SINCRONIZACION,
+  INITIAL_AUDIENCIAS,
+  DEFAULT_CONFIGURACION_CHATBOT,
+  INITIAL_REGISTROS_CHATBOT
 } from './src/data/mockStore';
 
 async function startServer() {
@@ -23,6 +27,9 @@ async function startServer() {
   let actuacionesStore = [...INITIAL_ACTUACIONES];
   let notificacionesPushStore = [...INITIAL_NOTIFICACIONES_PUSH];
   let historialSyncStore = [...INITIAL_REGISTROS_SINCRONIZACION];
+  let audienciasStore = [...INITIAL_AUDIENCIAS];
+  let configuracionChatbotStore: ConfiguracionChatbot = { ...DEFAULT_CONFIGURACION_CHATBOT };
+  let historialChatbotStore: RegistroConsultaChatbot[] = [...INITIAL_REGISTROS_CHATBOT];
 
   // ==========================================
   // API ROUTES
@@ -538,6 +545,153 @@ async function startServer() {
   // Historial Sync
   app.get('/api/siged/historial-sync', (req, res) => {
     res.json(historialSyncStore);
+  });
+
+  // ==========================================
+  // CHATBOT CLIENTES & ASISTENTE VIRTUAL API
+  // ==========================================
+
+  // 1. Consulta interactiva del cliente
+  app.post('/api/chatbot-cliente/consultar', async (req, res) => {
+    try {
+      const { dni_cuit, consulta, expediente_id, historial, canal } = req.body;
+
+      const resultado = await procesarConsultaChatbot(
+        {
+          dni_cuit,
+          consulta,
+          expediente_id,
+          historial,
+          canal: canal || 'web_widget',
+        },
+        expedientesStore,
+        audienciasStore,
+        configuracionChatbotStore
+      );
+
+      // Registrar consulta en el historial del estudio
+      const nuevoRegistro: RegistroConsultaChatbot = {
+        id: `REG-BOT-${Date.now()}`,
+        fecha: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        clienteDni: dni_cuit || 'Anonimo',
+        clienteNombre: resultado.expediente?.caratula?.split(' C/ ')[0] || resultado.expediente?.caratula || 'Cliente Consultante',
+        expedienteNumero: resultado.expediente?.numero,
+        pregunta: consulta || 'Consulta inicial de estado',
+        respuesta: resultado.mensaje,
+        canal: canal || 'web_widget',
+        solicitoHumano: !!resultado.requiereContactoHumano,
+        atendidoPorAbogado: false,
+      };
+
+      historialChatbotStore.unshift(nuevoRegistro);
+      if (historialChatbotStore.length > 200) {
+        historialChatbotStore = historialChatbotStore.slice(0, 200);
+      }
+
+      return res.json(resultado);
+    } catch (err: any) {
+      console.error('Error en /api/chatbot-cliente/consultar:', err);
+      return res.status(500).json({
+        exito: false,
+        mensaje: 'Ocurrió un error al procesar tu consulta. Por favor comunícate directamente con el estudio.',
+        sugerencias: ['📞 Hablar por WhatsApp', '⏰ Horarios de atención'],
+        tipo: 'seguridad',
+      });
+    }
+  });
+
+  // 2. Solicitar llamada o contacto de un abogado
+  app.post('/api/chatbot-cliente/solicitar-contacto', (req, res) => {
+    try {
+      const { dni_cuit, nombre, telefono, expediente_numero, motivo } = req.body;
+
+      const nuevoRegistro: RegistroConsultaChatbot = {
+        id: `CALL-REQ-${Date.now()}`,
+        fecha: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        clienteDni: dni_cuit || '',
+        clienteNombre: nombre || 'Cliente Solicitante',
+        expedienteNumero: expediente_numero || '',
+        pregunta: `[SOLICITUD DE CONTACTO] Tel: ${telefono || 'No especificado'}. Motivo: ${motivo || 'Desea hablar con su abogado'}`,
+        respuesta: 'Solicitud enviada a la bandeja de alertas del estudio.',
+        canal: 'web_widget',
+        solicitoHumano: true,
+        atendidoPorAbogado: false,
+      };
+
+      historialChatbotStore.unshift(nuevoRegistro);
+
+      // Crear notificación interna para los abogados
+      const notifInterna = {
+        id: `NOTIF-CLI-${Date.now()}`,
+        abogado_id: 'ADMIN-001',
+        expediente_id: expediente_numero || 'GRAL',
+        expediente_numero: expediente_numero || 'Sin asignar',
+        caratula: `SOLICITUD CLIENTE: ${nombre || dni_cuit}`,
+        titulo: '📞 Cliente solicita contacto telefónico',
+        mensaje: `El cliente ${nombre || dni_cuit} (Tel: ${telefono || 'S/D'}) ha solicitado que su letrado se comunique respecto a su causa.`,
+        tipo: 'GENERAL' as const,
+        fecha: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        leida: false,
+      };
+      notificacionesPushStore.unshift(notifInterna);
+
+      return res.json({
+        exito: true,
+        mensaje: 'Solicitud de contacto registrada con éxito. Un profesional del estudio se comunicará a la brevedad.',
+      });
+    } catch (err: any) {
+      return res.status(500).json({ exito: false, error: err?.message || String(err) });
+    }
+  });
+
+  // 3. Obtener y actualizar configuración del Chatbot
+  app.get('/api/chatbot-cliente/configuracion', (req, res) => {
+    res.json(configuracionChatbotStore);
+  });
+
+  app.post('/api/chatbot-cliente/configuracion', (req, res) => {
+    configuracionChatbotStore = {
+      ...configuracionChatbotStore,
+      ...req.body,
+    };
+    res.json({ exito: true, configuracion: configuracionChatbotStore });
+  });
+
+  // 4. Obtener historial de consultas de clientes
+  app.get('/api/chatbot-cliente/historial', (req, res) => {
+    res.json(historialChatbotStore);
+  });
+
+  // 5. Marcar consulta atendida por abogado
+  app.post('/api/chatbot-cliente/historial/marcar-atendido', (req, res) => {
+    const { id } = req.body;
+    historialChatbotStore = historialChatbotStore.map((reg) =>
+      reg.id === id ? { ...reg, atendidoPorAbogado: true } : reg
+    );
+    res.json({ exito: true });
+  });
+
+  // 6. Webhook Simulado para WhatsApp Business API
+  app.get('/api/chatbot-cliente/whatsapp-webhook', (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (mode === 'subscribe' && token === configuracionChatbotStore.whatsappVerifyToken) {
+      return res.status(200).send(challenge);
+    }
+    return res.sendStatus(403);
+  });
+
+  app.post('/api/chatbot-cliente/whatsapp-webhook', async (req, res) => {
+    try {
+      const body = req.body;
+      console.log('Mensaje recibido en WhatsApp Webhook:', JSON.stringify(body));
+      // Procesa payload estándar de Meta Cloud API
+      return res.status(200).json({ status: 'EVENT_RECEIVED' });
+    } catch (e: any) {
+      return res.status(500).json({ error: e?.message });
+    }
   });
 
   // ==========================================

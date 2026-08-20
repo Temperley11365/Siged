@@ -12,7 +12,9 @@ import {
   NotificacionPushSiged,
   RegistroSincronizacionSiged,
   ModeloEscritoRepositorio,
-  ProgresoPasosExpediente
+  ProgresoPasosExpediente,
+  ConfiguracionChatbot,
+  RegistroConsultaChatbot
 } from '../types';
 
 export const DEFAULT_OIDC_SESSION: OidcSessionState = {
@@ -78,11 +80,217 @@ export const INITIAL_NOTIFICACIONES_PUSH: NotificacionPushSiged[] = [];
 
 export const INITIAL_REGISTROS_SINCRONIZACION: RegistroSincronizacionSiged[] = [];
 
-export const INITIAL_EXPEDIENTES: Expediente[] = [];
+export const INITIAL_EXPEDIENTES: Expediente[] = [
+  {
+    id: 'EXP-001',
+    numero: '10423/2025',
+    caratula: 'GÓMEZ, MARIO ROBERTO C/ TRANSPORTES MISIONES S.R.L. S/ DAÑOS Y PERJUICIOS',
+    juzgado: 'Juzgado Civil y Comercial N° 2 - Posadas',
+    fuero: 'Civil y Comercial',
+    circunscripcion: 'Primera (Posadas)',
+    etapa_procesal: 'Apertura a Prueba',
+    abogados_autorizados: ['ADMIN-001', 'ABG-001'],
+    letrado_patrocinante: 'Dr. Alejandro Posadas',
+    fecha_inicio: '2025-04-12',
+    estado: 'En trámite',
+    cliente: 'Gómez, Mario Roberto',
+    partes: [
+      {
+        id: 'PARTE-001',
+        nombre: 'Gómez, Mario Roberto',
+        rol: 'Actor/a',
+        dni_cuit: '30123456',
+        domicilio_constituido: 'Av. Corrientes 1540, Posadas',
+        letrado_patrocinante: 'Dr. Alejandro Posadas',
+      },
+      {
+        id: 'PARTE-002',
+        nombre: 'Transportes Misiones S.R.L.',
+        rol: 'Demandado/a',
+        dni_cuit: '30-71445566-9',
+      },
+      {
+        id: 'PARTE-003',
+        nombre: 'La Segunda Compañía de Seguros',
+        rol: 'Citado/a en Garantía',
+      }
+    ],
+    movimientos: [
+      {
+        id: 'MOV-001',
+        fecha: '2026-08-10',
+        tipo: 'Resolución Judicial',
+        descripcion: 'Apertura a prueba por 40 días hábiles. Se designa perito médico traumatólogo y se fija fecha de audiencia preliminar.',
+        firmante: 'Dr. Ricardo Benítez - Juez',
+      },
+      {
+        id: 'MOV-002',
+        fecha: '2026-07-28',
+        tipo: 'Contestación de Demanda',
+        descripcion: 'La aseguradora contesta demanda reconociendo el seguro y ofreciendo pruebas documentales.',
+        firmante: 'Dra. Patricia Silva - Letrada Apoderada',
+      },
+      {
+        id: 'MOV-003',
+        fecha: '2025-04-12',
+        tipo: 'Escrito Inicial',
+        descripcion: 'Interposición de formal demanda con beneficio de litigar sin gastos.',
+        firmante: 'Dr. Alejandro Posadas',
+      }
+    ],
+    financiero: {
+      honorariosPactados: 1200000,
+      honorariosRegulados: 0,
+      honorariosCobrados: 400000,
+      tasaDeJusticiaMisiones: 18000,
+      tasaJusticiaPagada: true,
+      aportesCajaForense: 8500,
+      aportesCajaAbogados: 8500,
+      gastosDiligenciamiento: 25000,
+      saldoPendiente: 800000,
+    },
+    sistemaOrigen: 'SIGED Misiones',
+  },
+  {
+    id: 'EXP-002',
+    numero: '4589/2026',
+    caratula: 'FERREIRA, SILVANA ANDREA C/ SUPERMERCADOS DEL CENTRO S.A. S/ DESPIDO INCAUSADO',
+    juzgado: 'Juzgado Laboral N° 1 - Posadas',
+    fuero: 'Laboral',
+    circunscripcion: 'Primera (Posadas)',
+    etapa_procesal: 'Traba de la Litis / Contestación',
+    abogados_autorizados: ['ADMIN-001', 'ABG-001'],
+    letrado_patrocinante: 'Dr. Alejandro Posadas',
+    fecha_inicio: '2026-02-18',
+    estado: 'En trámite',
+    cliente: 'Ferreira, Silvana Andrea',
+    partes: [
+      {
+        id: 'PARTE-004',
+        nombre: 'Ferreira, Silvana Andrea',
+        rol: 'Actor/a',
+        dni_cuit: '28456789',
+        domicilio_constituido: 'Calle Félix de Azara 1820, Posadas',
+        letrado_patrocinante: 'Dr. Alejandro Posadas',
+      },
+      {
+        id: 'PARTE-005',
+        nombre: 'Supermercados del Centro S.A.',
+        rol: 'Demandado/a',
+        dni_cuit: '30-68991122-3',
+      }
+    ],
+    movimientos: [
+      {
+        id: 'MOV-004',
+        fecha: '2026-08-15',
+        tipo: 'Cédula Notificación SIGED',
+        descripcion: 'Cédula digital remitida al domicilio electrónico de la demandada para contestar traslado en 10 días.',
+        firmante: 'Secretaría Laboral N° 1',
+      },
+      {
+        id: 'MOV-005',
+        fecha: '2026-02-18',
+        tipo: 'Demanda Laboral',
+        descripcion: 'Presentación de demanda laboral por despido indirecto y diferencias de liquidación.',
+        firmante: 'Dr. Alejandro Posadas',
+      }
+    ],
+    financiero: {
+      honorariosPactados: 850000,
+      honorariosRegulados: 0,
+      honorariosCobrados: 250000,
+      tasaDeJusticiaMisiones: 0,
+      tasaJusticiaPagada: true,
+      aportesCajaForense: 5000,
+      aportesCajaAbogados: 5000,
+      gastosDiligenciamiento: 12000,
+      saldoPendiente: 600000,
+    },
+    sistemaOrigen: 'SIGED Misiones',
+  },
+  {
+    id: 'EXP-003',
+    numero: '8832/2025',
+    caratula: 'MARTÍNEZ, CLAUDIO GABRIEL C/ ANSES S/ REAJUSTES VARIOS',
+    juzgado: 'Juzgado Federal de Posadas - Secretaría Previsional',
+    fuero: 'ANSES / Previsional',
+    circunscripcion: 'Primera (Posadas)',
+    etapa_procesal: 'Autos para Sentencia',
+    abogados_autorizados: ['ADMIN-001', 'ABG-001'],
+    letrado_patrocinante: 'Dr. Alejandro Posadas',
+    fecha_inicio: '2025-06-20',
+    estado: 'Dictamen pendiente',
+    cliente: 'Martínez, Claudio Gabriel',
+    partes: [
+      {
+        id: 'PARTE-006',
+        nombre: 'Martínez, Claudio Gabriel',
+        rol: 'Actor/a',
+        dni_cuit: '14223344',
+        domicilio_constituido: 'Calle San Lorenzo 2100, Posadas',
+      },
+      {
+        id: 'PARTE-007',
+        nombre: 'Administración Nacional de la Seguridad Social (ANSES)',
+        rol: 'Demandado/a',
+      }
+    ],
+    movimientos: [
+      {
+        id: 'MOV-006',
+        fecha: '2026-08-05',
+        tipo: 'Pase a Despacho',
+        descripcion: 'Autos a resolver para dictado de sentencia definitiva de reajuste jubilatorio.',
+        firmante: 'Juez Federal de Primera Instancia',
+      }
+    ],
+    financiero: {
+      honorariosPactados: 600000,
+      honorariosRegulados: 0,
+      honorariosCobrados: 200000,
+      tasaDeJusticiaMisiones: 0,
+      tasaJusticiaPagada: true,
+      aportesCajaForense: 0,
+      aportesCajaAbogados: 0,
+      gastosDiligenciamiento: 5000,
+      saldoPendiente: 400000,
+    },
+    sistemaOrigen: 'PJN - Justicia Federal',
+  }
+];
 
 export const INITIAL_PRUEBAS: PruebaExpediente[] = [];
 
-export const INITIAL_AUDIENCIAS: AudienciaExpediente[] = [];
+export const INITIAL_AUDIENCIAS: AudienciaExpediente[] = [
+  {
+    id: 'AUD-001',
+    expediente_id: 'EXP-001',
+    caratula_expte: 'GÓMEZ, MARIO ROBERTO C/ TRANSPORTES MISIONES S.R.L. S/ DAÑOS Y PERJUICIOS',
+    tipo: 'Art. 360 / Preliminar CPCCyM',
+    fecha_hora: '2026-09-15 09:30',
+    juzgado_sala: 'Juzgado Civil y Comercial N° 2 - Sala 2 (Posadas)',
+    modalidad: 'Presencial',
+    estado: 'Programada',
+    pruebas_vinculadas_ids: [],
+    personas_citadas: [
+      {
+        id: 'CIT-001',
+        nombre: 'Gómez, Mario Roberto',
+        dni: '30123456',
+        rolCitado: 'Absolvente / Parte',
+        estadoNotificacion: 'Diligenciada / Notificado',
+      },
+      {
+        id: 'CIT-002',
+        nombre: 'Dr. Fernando Romero (Perito Médico)',
+        rolCitado: 'Perito',
+        estadoNotificacion: 'Cédula Confeccionada',
+      }
+    ],
+    notas_audiencia: 'El cliente debe presentarse con DNI original y comprobantes de gastos médicos actualizados.',
+  }
+];
 
 export const INITIAL_TAREAS: TareaEstudio[] = [];
 
@@ -815,4 +1023,47 @@ export const INITIAL_PROGRESO_PASOS: ProgresoPasosExpediente[] = [];
 export const INITIAL_TRAMITES_PORTALES: any[] = [];
 
 export const INITIAL_ALERTAS_PROGRAMABLES: any[] = [];
+
+export const DEFAULT_CONFIGURACION_CHATBOT: ConfiguracionChatbot = {
+  nombreBot: 'Asistente Legal SIGED',
+  mensajeBienvenida: '¡Hola! Soy el Asistente Virtual del Estudio Jurídico. Ingresa tu número de DNI o CUIT para consultar el estado actual de tu causa, próximas audiencias o novedades de tu expediente.',
+  tonoRespuesta: 'cordial',
+  permitirVerAudiencias: true,
+  permitirVerFinanciero: true,
+  permitirSolicitarLlamada: true,
+  telefonoWhatsAppEstudio: '+54 9 376 455-8899',
+  emailContactoEstudio: 'consultas@estudioposadas.com.ar',
+  nombreEstudio: 'Estudio Jurídico Posadas & Asociados',
+  horarioAtencion: 'Lunes a Viernes de 07:30 a 13:00 y 16:30 a 20:00 hs',
+  whatsappWebhookUrl: 'https://api.estudioposadas.com.ar/api/chatbot-cliente/whatsapp-webhook',
+  whatsappVerifyToken: 'siged_whatsapp_token_seguro_2026',
+};
+
+export const INITIAL_REGISTROS_CHATBOT: RegistroConsultaChatbot[] = [
+  {
+    id: 'REG-BOT-001',
+    fecha: '2026-08-20 10:15',
+    clienteDni: '30123456',
+    clienteNombre: 'Gómez, Mario Roberto',
+    expedienteNumero: '10423/2025',
+    pregunta: '¿Cuándo es mi próxima audiencia y tengo que ir yo?',
+    respuesta: 'Hola Mario, tu audiencia preliminar está fijada para el 15/09/2026 a las 09:30 hs en la Sala N° 2 del Juzgado Civil N° 2 de Posadas. Debes presentarte personalmente con tu DNI original.',
+    canal: 'web_widget',
+    solicitoHumano: false,
+    atendidoPorAbogado: true,
+  },
+  {
+    id: 'REG-BOT-002',
+    fecha: '2026-08-19 16:40',
+    clienteDni: '28456789',
+    clienteNombre: 'Ferreira, Silvana Andrea',
+    expedienteNumero: '4589/2026',
+    pregunta: '¿La empresa ya contestó el juicio laboral?',
+    respuesta: 'Hola Silvana, el juzgado envió la cédula oficial de notificación a la empresa el 15/08/2026. Tienen un plazo de 10 días hábiles judiciales para contestar.',
+    canal: 'portal_clientes',
+    solicitoHumano: true,
+    atendidoPorAbogado: false,
+  }
+];
+
 

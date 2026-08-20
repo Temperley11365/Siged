@@ -10,6 +10,7 @@ import { DocumentosEditorView } from './components/DocumentosEditorView';
 import { ApiExplorerView } from './components/ApiExplorerView';
 import { RepositorioEscritosView } from './components/RepositorioEscritosView';
 import { PortalesExternosView } from './components/PortalesExternosView';
+import { ChatbotClientesView } from './components/ChatbotClientesView';
 import { OidcAuthModal } from './components/OidcAuthModal';
 import { PerfilCredencialesModal } from './components/PerfilCredencialesModal';
 import { NotificacionToastPopup } from './components/NotificacionToastPopup';
@@ -1075,6 +1076,14 @@ export default function App() {
 
         {activeTab === 'api_explorer' && (
           <ApiExplorerView abogadoActual={abogadoActual} />
+        )}
+
+        {activeTab === 'chatbot_clientes' && (
+          <ChatbotClientesView
+            expedientes={expedientes}
+            audiencias={audiencias}
+            theme={theme}
+          />
         )}
       </main>
 

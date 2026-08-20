@@ -560,3 +560,89 @@ export interface BackupSnapshot {
   };
 }
 
+// -------------------------------------------------------------
+// 8. Chatbot de Clientes & Asistente Virtual Inteligente
+// -------------------------------------------------------------
+export interface ResumenExpedienteChatbot {
+  numero: string;
+  caratula: string;
+  juzgado: string;
+  fuero: string;
+  estado: string;
+  etapa_procesal: string;
+  abogado_responsable: string;
+  ultimo_movimiento?: {
+    fecha: string;
+    tipo: string;
+    descripcion: string;
+  };
+  proxima_audiencia?: {
+    fecha: string;
+    tipo: string;
+    juzgado: string;
+    modalidad: string;
+  };
+  saldo_financiero?: {
+    honorariosPactados: number;
+    honorariosCobrados: number;
+    saldoPendiente: number;
+  };
+}
+
+export interface MensajeChatCliente {
+  id: string;
+  emisor: 'cliente' | 'bot' | 'sistema';
+  texto: string;
+  timestamp: string;
+  tipoRespuesta?: 'info' | 'audiencia' | 'movimiento' | 'financiero' | 'seguridad' | 'escalamiento';
+  expedienteReferencia?: ResumenExpedienteChatbot;
+  sugerencias?: string[];
+}
+
+export interface ConfiguracionChatbot {
+  nombreBot: string;
+  mensajeBienvenida: string;
+  tonoRespuesta: 'formal' | 'cordial' | 'simplificado';
+  permitirVerAudiencias: boolean;
+  permitirVerFinanciero: boolean;
+  permitirSolicitarLlamada: boolean;
+  telefonoWhatsAppEstudio: string;
+  emailContactoEstudio: string;
+  nombreEstudio: string;
+  horarioAtencion: string;
+  whatsappWebhookUrl?: string;
+  whatsappVerifyToken?: string;
+}
+
+export interface RegistroConsultaChatbot {
+  id: string;
+  fecha: string;
+  clienteDni: string;
+  clienteNombre?: string;
+  expedienteNumero?: string;
+  pregunta: string;
+  respuesta: string;
+  canal: 'web_widget' | 'portal_clientes' | 'whatsapp';
+  solicitoHumano: boolean;
+  atendidoPorAbogado?: boolean;
+}
+
+export interface PeticionConsultaChatbot {
+  dni_cuit: string;
+  consulta: string;
+  expediente_id?: string;
+  historial?: { emisor: 'cliente' | 'bot'; texto: string }[];
+  canal?: 'web_widget' | 'portal_clientes' | 'whatsapp';
+}
+
+export interface RespuestaConsultaChatbot {
+  exito: boolean;
+  mensaje: string;
+  expediente?: ResumenExpedienteChatbot;
+  expedientesDisponibles?: { id: string; numero: string; caratula: string }[];
+  sugerencias: string[];
+  tipo: 'info' | 'audiencia' | 'movimiento' | 'financiero' | 'seguridad' | 'escalamiento';
+  requiereContactoHumano?: boolean;
+}
+
+
