@@ -392,6 +392,26 @@ async function startServer() {
     return res.status(201).json(nuevo);
   });
 
+  // Actualizar expediente completo (incluyendo estado financiero, partes, etc.)
+  app.put('/api/expedientes/:id', (req, res) => {
+    const { id } = req.params;
+    const actualizado = req.body;
+    const expIndex = expedientesStore.findIndex((e) => e.id === id);
+
+    if (expIndex === -1) {
+      // Si no existe, lo insertamos
+      expedientesStore.unshift(actualizado);
+      return res.json({ exitoso: true, expediente: actualizado });
+    }
+
+    expedientesStore[expIndex] = {
+      ...expedientesStore[expIndex],
+      ...actualizado,
+    };
+
+    return res.json({ exitoso: true, expediente: expedientesStore[expIndex] });
+  });
+
   // Actualizar asignación de abogados autorizados en un expediente
   app.post('/api/expedientes/autorizaciones', (req, res) => {
     const { expediente_id, abogados_autorizados } = req.body;

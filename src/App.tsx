@@ -767,6 +767,21 @@ export default function App() {
     }
   };
 
+  const handleActualizarExpediente = async (expedienteActualizado: Expediente) => {
+    setExpedientes((prev) =>
+      prev.map((e) => (e.id === expedienteActualizado.id ? expedienteActualizado : e))
+    );
+    try {
+      await fetch(`/api/expedientes/${expedienteActualizado.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(expedienteActualizado),
+      });
+    } catch (err) {
+      console.log('Error actualizando expediente en backend:', err);
+    }
+  };
+
   // Handlers Pruebas
   const handleAgregarPrueba = (nueva: PruebaExpediente) => {
     setPruebas((prev) => [nueva, ...prev]);
@@ -956,6 +971,7 @@ export default function App() {
             progresosPasos={progresosPasos}
             onSeleccionarActuacionParaProcesar={handleSeleccionarActuacionParaProcesar}
             onCrearNuevoExpediente={handleCrearNuevoExpediente}
+            onActualizarExpediente={handleActualizarExpediente}
             onAbrirAsociadosModal={handleAbrirAsociadosModal}
             onTogglePasoCompletado={handleTogglePasoCompletado}
             onGuardarDocumentoExpediente={handleGuardarDocumentoExpediente}
@@ -1019,6 +1035,7 @@ export default function App() {
             onAgregarDiaInhabil={handleAgregarDiaInhabil}
             onEliminarDiaInhabil={handleEliminarDiaInhabil}
             onActualizarEstadoTarea={handleActualizarEstadoTarea}
+            onActualizarExpediente={handleActualizarExpediente}
             onSelectTab={setActiveTab}
           />
         )}

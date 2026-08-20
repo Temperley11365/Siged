@@ -437,7 +437,12 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
         onTogglePasoCompletado={onTogglePasoCompletado}
         onGuardarDocumentoExpediente={onGuardarDocumentoExpediente}
         onAbrirEditorConTexto={onAbrirEditorConTexto}
-        onActualizarExpediente={onActualizarExpediente}
+        onActualizarExpediente={(expActualizado) => {
+          if (onActualizarExpediente) {
+            onActualizarExpediente(expActualizado);
+          }
+          setExpedienteSeleccionado(expActualizado);
+        }}
       />
 
       {/* Modal Alta de Causa */}

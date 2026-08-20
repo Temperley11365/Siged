@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, Users, DollarSign, Clock, Paperclip, ChevronRight, X, ShieldAlert, CheckCircle2, AlertCircle, Building, Landmark, Scale,
-  BookOpen, CheckSquare, Copy, Plus, Edit3, Download, ArrowRight, Sparkles, Folder
+  BookOpen, CheckSquare, Copy, Plus, Edit3, Download, ArrowRight, Sparkles, Folder, Calculator, Percent, Receipt, Coins, Wallet, RotateCcw, FileSpreadsheet, Check
 } from 'lucide-react';
 import { Expediente, DocumentoEstudio, PruebaExpediente, AudienciaExpediente, ModeloEscritoRepositorio, ProgresoPasosExpediente } from '../types';
 
@@ -55,21 +55,40 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
   const [finDiligenciamiento, setFinDiligenciamiento] = useState<number>(expediente?.financiero?.gastosDiligenciamiento ?? 0);
   const [mensajeFinancieroGuardado, setMensajeFinancieroGuardado] = useState(false);
 
+  // Financial Helper Tools State
+  const [mostrarCalculadoraTasa, setMostrarCalculadoraTasa] = useState(false);
+  const [montoLitigioParaTasa, setMontoLitigioParaTasa] = useState<number>(0);
+  const [mostrarPagoCuenta, setMostrarPagoCuenta] = useState(false);
+  const [montoNuevoPagoCuenta, setMontoNuevoPagoCuenta] = useState<number>(0);
+  const [conceptoNuevoPago, setConceptoNuevoPago] = useState<string>('Pago a cuenta de honorarios');
+  const [liquidacionCopiada, setLiquidacionCopiada] = useState(false);
+
   // Keep financial state in sync when expediente changes
-  React.useEffect(() => {
-    if (expediente) {
+  useEffect(() => {
+    if (expediente && expediente.financiero) {
       setFinHonorariosPactados(expediente.financiero.honorariosPactados || 0);
       setFinHonorariosRegulados(expediente.financiero.honorariosRegulados || 0);
       setFinHonorariosCobrados(expediente.financiero.honorariosCobrados || 0);
       setFinMontoTasas(expediente.financiero.montoTasas ?? expediente.financiero.tasaDeJusticiaMisiones ?? 0);
-      setFinTasaPagada(expediente.financiero.tasaJusticiaPagada || false);
+      setFinTasaPagada(Boolean(expediente.financiero.tasaJusticiaPagada));
       setFinGastosExtras(expediente.financiero.gastosExtras || 0);
       setFinAportesCaja(expediente.financiero.aportesCajaForense || 0);
       setFinAportesColegio(expediente.financiero.aportesCajaAbogados || 0);
       setFinDiligenciamiento(expediente.financiero.gastosDiligenciamiento || 0);
-      setEditandoFinanciero(false);
     }
-  }, [expediente?.id]);
+  }, [
+    expediente?.id,
+    expediente?.financiero?.honorariosPactados,
+    expediente?.financiero?.honorariosRegulados,
+    expediente?.financiero?.honorariosCobrados,
+    expediente?.financiero?.montoTasas,
+    expediente?.financiero?.tasaJusticiaPagada,
+    expediente?.financiero?.gastosExtras,
+    expediente?.financiero?.aportesCajaForense,
+    expediente?.financiero?.aportesCajaAbogados,
+    expediente?.financiero?.gastosDiligenciamiento,
+    expediente?.financiero?.saldoPendiente,
+  ]);
 
   if (!isOpen || !expediente) return null;
 
@@ -479,283 +498,762 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
             </div>
           )}
 
-          {activeTab === 'financiero' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800 flex-wrap gap-2">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">
-                    Estado Financiero, Tasas, Honorarios y Gastos
-                  </h3>
-                  <p className="text-[11px] text-slate-500 font-mono">
-                    Control contable de honorarios profesionales, tasas judiciales/administrativas y gastos extras
-                  </p>
-                </div>
+          {activeTab === 'financiero' && (() => {
+            // Live calculations for Edit Mode
+            const liveHonorariosPactados = Number(finHonorariosPactados) || 0;
+            const liveHonorariosRegulados = Number(finHonorariosRegulados) || 0;
+            const liveTotalHonorarios = (liveHonorariosPactados > 0 && liveHonorariosRegulados > 0)
+              ? (liveHonorariosPactados + liveHonorariosRegulados)
+              : (liveHonorariosPactados || liveHonorariosRegulados || 0);
+            const liveHonorariosCobrados = Number(finHonorariosCobrados) || 0;
+            const liveSaldoHonorarios = Math.max(0, liveTotalHonorarios - liveHonorariosCobrados);
 
-                <div className="flex items-center space-x-2">
-                  {editandoFinanciero ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onActualizarExpediente) {
-                            const saldoCalc = Math.max(
-                              0,
-                              (finHonorariosPactados || finHonorariosRegulados) -
-                                finHonorariosCobrados +
-                                (finTasaPagada ? 0 : finMontoTasas) +
-                                finGastosExtras +
-                                finDiligenciamiento
-                            );
+            const liveMontoTasas = Number(finMontoTasas) || 0;
+            const liveGastosExtras = Number(finGastosExtras) || 0;
+            const liveGastosDilig = Number(finDiligenciamiento) || 0;
+            const liveAportesCaja = Number(finAportesCaja) || 0;
+            const liveAportesColegio = Number(finAportesColegio) || 0;
 
-                            const actualizado: Expediente = {
-                              ...expediente,
-                              financiero: {
-                                ...expediente.financiero,
-                                honorariosPactados: Number(finHonorariosPactados) || 0,
-                                honorariosRegulados: Number(finHonorariosRegulados) || 0,
-                                honorariosCobrados: Number(finHonorariosCobrados) || 0,
-                                montoTasas: Number(finMontoTasas) || 0,
-                                tasaDeJusticiaMisiones: Number(finMontoTasas) || 0,
-                                tasaJusticiaPagada: Boolean(finTasaPagada),
-                                gastosExtras: Number(finGastosExtras) || 0,
-                                aportesCajaForense: Number(finAportesCaja) || 0,
-                                aportesCajaAbogados: Number(finAportesColegio) || 0,
-                                gastosDiligenciamiento: Number(finDiligenciamiento) || 0,
-                                saldoPendiente: saldoCalc,
-                              },
-                            };
-                            onActualizarExpediente(actualizado);
-                            setEditandoFinanciero(false);
-                            setMensajeFinancieroGuardado(true);
-                            setTimeout(() => setMensajeFinancieroGuardado(false), 3000);
-                          }
-                        }}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-mono font-bold flex items-center space-x-1.5 shadow-md shadow-emerald-950/40 transition-all"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Guardar Cambios</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditandoFinanciero(false)}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-mono transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                    </>
-                  ) : (
+            const liveTotalGastosAportes = liveMontoTasas + liveGastosExtras + liveGastosDilig + liveAportesCaja + liveAportesColegio;
+            const liveTotalGeneralCausa = liveTotalHonorarios + liveTotalGastosAportes;
+            const liveTotalPercibido = liveHonorariosCobrados + (finTasaPagada ? liveMontoTasas : 0);
+            const liveSaldoPendienteTotal = liveSaldoHonorarios + (finTasaPagada ? 0 : liveMontoTasas) + liveGastosExtras + liveGastosDilig + liveAportesCaja + liveAportesColegio;
+
+            // Calculations for View Mode
+            const viewHonorariosPactados = Number(expediente.financiero.honorariosPactados) || 0;
+            const viewHonorariosRegulados = Number(expediente.financiero.honorariosRegulados) || 0;
+            const viewTotalHonorarios = (viewHonorariosPactados > 0 && viewHonorariosRegulados > 0)
+              ? (viewHonorariosPactados + viewHonorariosRegulados)
+              : (viewHonorariosPactados || viewHonorariosRegulados || 0);
+            const viewHonorariosCobrados = Number(expediente.financiero.honorariosCobrados) || 0;
+            const viewSaldoHonorarios = Math.max(0, viewTotalHonorarios - viewHonorariosCobrados);
+
+            const viewMontoTasas = Number(expediente.financiero.montoTasas ?? expediente.financiero.tasaDeJusticiaMisiones ?? 0);
+            const viewTasaPagada = Boolean(expediente.financiero.tasaJusticiaPagada);
+            const viewGastosExtras = Number(expediente.financiero.gastosExtras) || 0;
+            const viewGastosDilig = Number(expediente.financiero.gastosDiligenciamiento) || 0;
+            const viewAportesCaja = Number(expediente.financiero.aportesCajaForense) || 0;
+            const viewAportesColegio = Number(expediente.financiero.aportesCajaAbogados) || 0;
+
+            const viewTotalGastosAportes = viewMontoTasas + viewGastosExtras + viewGastosDilig + viewAportesCaja + viewAportesColegio;
+            const viewTotalGeneralCausa = viewTotalHonorarios + viewTotalGastosAportes;
+            const viewTotalPercibido = viewHonorariosCobrados + (viewTasaPagada ? viewMontoTasas : 0);
+            const viewSaldoPendienteTotal = viewSaldoHonorarios + (viewTasaPagada ? 0 : viewMontoTasas) + viewGastosExtras + viewGastosDilig + viewAportesCaja + viewAportesColegio;
+
+            // Generate exportable plaintext summary
+            const generarTextoLiquidacion = () => {
+              return `=====================================================
+ESTUDIO JURÍDICO - LIQUIDACIÓN Y ESTADO DE CUENTA
+=====================================================
+Expediente N°: ${expediente.numero}
+Carátula: ${expediente.caratula}
+Juzgado: ${expediente.juzgado}
+Cliente / Parte: ${expediente.cliente || 'No especificado'}
+Fecha de emisión: ${new Date().toLocaleDateString('es-AR')}
+-----------------------------------------------------
+1. HONORARIOS PROFESIONALES
+- Honorarios Pactados: $ ${viewHonorariosPactados.toLocaleString('es-AR')}
+- Honorarios Regulados: $ ${viewHonorariosRegulados.toLocaleString('es-AR')}
+- Subtotal Honorarios: $ ${viewTotalHonorarios.toLocaleString('es-AR')}
+- Honorarios Cobrados / A cuenta: $ ${viewHonorariosCobrados.toLocaleString('es-AR')}
+- Saldo Pendiente Honorarios: $ ${viewSaldoHonorarios.toLocaleString('es-AR')}
+
+2. TASAS JUDICIALES Y ADMINISTRATIVAS
+- Monto Tasa de Justicia: $ ${viewMontoTasas.toLocaleString('es-AR')} (${viewTasaPagada ? 'PAGADA' : 'PENDIENTE'})
+
+3. GASTOS OPERATIVOS Y APORTES DE LEY
+- Gastos Extras (traslados, pericias): $ ${viewGastosExtras.toLocaleString('es-AR')}
+- Diligenciamiento / Notificaciones: $ ${viewGastosDilig.toLocaleString('es-AR')}
+- Aportes Caja Forense (Misiones): $ ${viewAportesCaja.toLocaleString('es-AR')}
+- Aportes Colegio Abogados (CADAM): $ ${viewAportesColegio.toLocaleString('es-AR')}
+- Subtotal Gastos y Aportes: $ ${viewTotalGastosAportes.toLocaleString('es-AR')}
+-----------------------------------------------------
+TOTAL GENERAL DE LA LIQUIDACIÓN: $ ${viewTotalGeneralCausa.toLocaleString('es-AR')}
+TOTAL ABONADO / PERCIBIDO: $ ${viewTotalPercibido.toLocaleString('es-AR')}
+SALDO TOTAL PENDIENTE A CANCELAR: $ ${viewSaldoPendienteTotal.toLocaleString('es-AR')}
+=====================================================`;
+            };
+
+            const handleGuardarCambiosFinancieros = () => {
+              const actualizado: Expediente = {
+                ...expediente,
+                financiero: {
+                  ...expediente.financiero,
+                  honorariosPactados: liveHonorariosPactados,
+                  honorariosRegulados: liveHonorariosRegulados,
+                  honorariosCobrados: liveHonorariosCobrados,
+                  montoTasas: liveMontoTasas,
+                  tasaDeJusticiaMisiones: liveMontoTasas,
+                  tasaJusticiaPagada: Boolean(finTasaPagada),
+                  gastosExtras: liveGastosExtras,
+                  aportesCajaForense: liveAportesCaja,
+                  aportesCajaAbogados: liveAportesColegio,
+                  gastosDiligenciamiento: liveGastosDilig,
+                  saldoPendiente: liveSaldoPendienteTotal,
+                },
+              };
+
+              if (onActualizarExpediente) {
+                onActualizarExpediente(actualizado);
+              }
+              setEditandoFinanciero(false);
+              setMensajeFinancieroGuardado(true);
+              setTimeout(() => setMensajeFinancieroGuardado(false), 3500);
+            };
+
+            return (
+              <div className="space-y-6">
+                {/* Header and Action Buttons */}
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800 flex-wrap gap-3">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-200 flex items-center space-x-2">
+                      <DollarSign className="w-4 h-4 text-emerald-400" />
+                      <span>Estado Financiero, Honorarios, Tasas y Liquidación</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-mono">
+                      Control contable integral: honorarios pactados/regulados, tasas de justicia Misiones, aportes y saldo neto
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-2 flex-wrap gap-2">
+                    {/* Botón de Exportar / Copiar Liquidación */}
                     <button
                       type="button"
-                      onClick={() => setEditandoFinanciero(true)}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-mono font-bold flex items-center space-x-1.5 shadow-md shadow-blue-950/40 transition-all"
+                      onClick={() => {
+                        const texto = generarTextoLiquidacion();
+                        navigator.clipboard.writeText(texto);
+                        setLiquidacionCopiada(true);
+                        setTimeout(() => setLiquidacionCopiada(false), 3000);
+                      }}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-mono flex items-center space-x-1.5 border border-slate-700 transition-colors"
+                      title="Copiar liquidación formal completa al portapapeles"
                     >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      <span>Editar Estado Financiero</span>
+                      {liquidacionCopiada ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-400 font-bold">¡Liquidación Copiada!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Copiar Liquidación</span>
+                        </>
+                      )}
                     </button>
-                  )}
-                </div>
-              </div>
 
-              {mensajeFinancieroGuardado && (
-                <div className="p-3 bg-emerald-950/80 border border-emerald-500/50 rounded-xl text-emerald-300 text-xs font-mono flex items-center space-x-2 animate-in fade-in">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>¡Estado financiero actualizado y guardado correctamente!</span>
-                </div>
-              )}
+                    {/* Botón de Registro Rápido de Pago a Cuenta */}
+                    <button
+                      type="button"
+                      onClick={() => setMostrarPagoCuenta(!mostrarPagoCuenta)}
+                      className="px-3 py-1.5 bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 rounded-lg text-xs font-mono flex items-center space-x-1.5 border border-emerald-700/50 transition-colors"
+                    >
+                      <Coins className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Registrar Cobro</span>
+                    </button>
 
-              {/* Editable Form Mode */}
-              {editandoFinanciero ? (
-                <div className="bg-slate-950 p-5 rounded-2xl border border-blue-500/40 space-y-4">
-                  <div className="flex items-center space-x-2 text-blue-400 font-mono text-xs font-bold">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Modificar Valores Contables del Expediente</span>
+                    {editandoFinanciero ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleGuardarCambiosFinancieros}
+                          className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-mono font-bold flex items-center space-x-1.5 shadow-md shadow-emerald-950/40 transition-all"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Guardar Cambios</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Reset local fields to current expediente
+                            if (expediente?.financiero) {
+                              setFinHonorariosPactados(expediente.financiero.honorariosPactados || 0);
+                              setFinHonorariosRegulados(expediente.financiero.honorariosRegulados || 0);
+                              setFinHonorariosCobrados(expediente.financiero.honorariosCobrados || 0);
+                              setFinMontoTasas(expediente.financiero.montoTasas ?? expediente.financiero.tasaDeJusticiaMisiones ?? 0);
+                              setFinTasaPagada(Boolean(expediente.financiero.tasaJusticiaPagada));
+                              setFinGastosExtras(expediente.financiero.gastosExtras || 0);
+                              setFinAportesCaja(expediente.financiero.aportesCajaForense || 0);
+                              setFinAportesColegio(expediente.financiero.aportesCajaAbogados || 0);
+                              setFinDiligenciamiento(expediente.financiero.gastosDiligenciamiento || 0);
+                            }
+                            setEditandoFinanciero(false);
+                          }}
+                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-mono transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setEditandoFinanciero(true)}
+                        className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-mono font-bold flex items-center space-x-1.5 shadow-md shadow-blue-950/40 transition-all"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Editar Estado Financiero</span>
+                      </button>
+                    )}
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
-                    <div className="space-y-1">
-                      <label className="block text-slate-400 text-[10px] uppercase">Honorarios Pactados ($):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={finHonorariosPactados}
-                        onChange={(e) => setFinHonorariosPactados(Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-bold font-mono"
-                      />
+                {/* Success alert banner */}
+                {mensajeFinancieroGuardado && (
+                  <div className="p-3.5 bg-emerald-950/90 border border-emerald-500/60 rounded-xl text-emerald-200 text-xs font-mono flex items-center justify-between shadow-lg shadow-emerald-950/50 animate-in fade-in">
+                    <div className="flex items-center space-x-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <span className="font-bold">¡Cambios financieros guardados con éxito!</span>
+                        <p className="text-[11px] text-emerald-400/80">Los montos, tasas y saldos pendientes fueron recalculados y persistidos en el expediente.</p>
+                      </div>
                     </div>
+                  </div>
+                )}
 
-                    <div className="space-y-1">
-                      <label className="block text-slate-400 text-[10px] uppercase">Honorarios Regulados ($):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={finHonorariosRegulados}
-                        onChange={(e) => setFinHonorariosRegulados(Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-bold font-mono"
-                      />
+                {/* Submodal / Panel: Registrar Cobro Rápido a Cuenta */}
+                {mostrarPagoCuenta && (
+                  <div className="p-4 bg-slate-900 border border-emerald-500/50 rounded-2xl space-y-3 animate-in fade-in">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 text-xs font-bold text-emerald-400 font-mono">
+                        <Coins className="w-4 h-4" />
+                        <span>Registrar Nuevo Cobro / Pago a Cuenta</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMostrarPagoCuenta(false)}
+                        className="text-slate-500 hover:text-slate-300"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-slate-400 text-[10px] uppercase">Honorarios Cobrados ($):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={finHonorariosCobrados}
-                        onChange={(e) => setFinHonorariosCobrados(Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-emerald-400 focus:outline-none focus:border-emerald-500 font-bold font-mono"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-slate-400 text-[10px] uppercase">Monto de Tasas (de Justicia / Adm.) ($):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={finMontoTasas}
-                        onChange={(e) => setFinMontoTasas(Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-blue-400 focus:outline-none focus:border-blue-500 font-bold font-mono"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-slate-400 text-[10px] uppercase">Gastos Extras ($):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={finGastosExtras}
-                        onChange={(e) => setFinGastosExtras(Number(e.target.value))}
-                        placeholder="Pericias, traslados, etc."
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-amber-400 focus:outline-none focus:border-amber-500 font-bold font-mono"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-slate-400 text-[10px] uppercase">Gastos de Diligenciamiento ($):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={finDiligenciamiento}
-                        onChange={(e) => setFinDiligenciamiento(Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-bold font-mono"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-slate-400 text-[10px] uppercase">Aportes Caja Forense Misiones ($):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={finAportesCaja}
-                        onChange={(e) => setFinAportesCaja(Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-mono"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="block text-slate-400 text-[10px] uppercase">Aportes Colegio Abogados (CADAM) ($):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={finAportesColegio}
-                        onChange={(e) => setFinAportesColegio(Number(e.target.value))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-mono"
-                      />
-                    </div>
-
-                    <div className="space-y-1 flex flex-col justify-end">
-                      <label className="flex items-center space-x-2 p-2 bg-slate-900 rounded-lg border border-slate-700 cursor-pointer">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+                      <div>
+                        <label className="block text-slate-400 text-[10px] uppercase mb-1">Monto Percibido ($):</label>
                         <input
-                          type="checkbox"
-                          checked={finTasaPagada}
-                          onChange={(e) => setFinTasaPagada(e.target.checked)}
-                          className="w-4 h-4 text-emerald-500 rounded bg-slate-950 border-slate-700 focus:ring-emerald-500"
+                          type="number"
+                          min="0"
+                          value={montoNuevoPagoCuenta || ''}
+                          onChange={(e) => setMontoNuevoPagoCuenta(Math.max(0, Number(e.target.value)))}
+                          placeholder="Ej: 50000"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-emerald-400 font-bold font-mono focus:border-emerald-500 focus:outline-none"
                         />
-                        <span className="text-[11px] text-slate-200 font-mono">
-                          {finTasaPagada ? '✓ Tasa Pagada' : '⚠️ Tasa Pendiente'}
-                        </span>
-                      </label>
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 text-[10px] uppercase mb-1">Concepto / Detalle:</label>
+                        <input
+                          type="text"
+                          value={conceptoNuevoPago}
+                          onChange={(e) => setConceptoNuevoPago(e.target.value)}
+                          placeholder="Ej: Pago cuota 1 / Honorarios"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (montoNuevoPagoCuenta > 0) {
+                              const nuevoCobrado = (expediente.financiero.honorariosCobrados || 0) + montoNuevoPagoCuenta;
+                              const saldoRecalculado = Math.max(
+                                0,
+                                viewTotalHonorarios -
+                                  nuevoCobrado +
+                                  (viewTasaPagada ? 0 : viewMontoTasas) +
+                                  viewGastosExtras +
+                                  viewGastosDilig +
+                                  viewAportesCaja +
+                                  viewAportesColegio
+                              );
+                              const actualizado: Expediente = {
+                                ...expediente,
+                                financiero: {
+                                  ...expediente.financiero,
+                                  honorariosCobrados: nuevoCobrado,
+                                  saldoPendiente: saldoRecalculado,
+                                },
+                              };
+                              if (onActualizarExpediente) {
+                                onActualizarExpediente(actualizado);
+                              }
+                              setFinHonorariosCobrados(nuevoCobrado);
+                              setMontoNuevoPagoCuenta(0);
+                              setMostrarPagoCuenta(false);
+                              setMensajeFinancieroGuardado(true);
+                              setTimeout(() => setMensajeFinancieroGuardado(false), 3000);
+                            }
+                          }}
+                          disabled={!montoNuevoPagoCuenta || montoNuevoPagoCuenta <= 0}
+                          className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-xs font-mono font-bold flex items-center justify-center space-x-1.5 transition-colors"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Aplicar Cobro</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Submodal / Panel: Calculadora de Tasa de Justicia de Misiones (1.5%) */}
+                {mostrarCalculadoraTasa && (
+                  <div className="p-4 bg-slate-900 border border-blue-500/50 rounded-2xl space-y-3 animate-in fade-in">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 text-xs font-bold text-blue-400 font-mono">
+                        <Calculator className="w-4 h-4" />
+                        <span>Calculadora de Tasa de Justicia de Misiones (1.5% Ley Provincial)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMostrarCalculadoraTasa(false)}
+                        className="text-slate-500 hover:text-slate-300"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-mono">
+                      Ingrese el monto de la demanda, reclamo o transacción judicial para calcular automáticamente la Tasa de Justicia del 1.5%:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+                      <div>
+                        <label className="block text-slate-400 text-[10px] uppercase mb-1">Monto de la Demanda / Litigio ($):</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={montoLitigioParaTasa || ''}
+                          onChange={(e) => setMontoLitigioParaTasa(Math.max(0, Number(e.target.value)))}
+                          placeholder="Ej: 5000000"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-blue-400 font-bold font-mono focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-400 text-[10px] uppercase mb-1">Tasa de Justicia (1.5% Calculado):</label>
+                        <div className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-bold font-mono">
+                          $ {(montoLitigioParaTasa * 0.015).toLocaleString('es-AR')}
+                        </div>
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const tasaCalculada = Math.round(montoLitigioParaTasa * 0.015);
+                            setFinMontoTasas(tasaCalculada);
+                            if (!editandoFinanciero) {
+                              const nuevoSaldo = Math.max(
+                                0,
+                                viewSaldoHonorarios +
+                                  (viewTasaPagada ? 0 : tasaCalculada) +
+                                  viewGastosExtras +
+                                  viewGastosDilig +
+                                  viewAportesCaja +
+                                  viewAportesColegio
+                              );
+                              const actualizado: Expediente = {
+                                ...expediente,
+                                financiero: {
+                                  ...expediente.financiero,
+                                  montoTasas: tasaCalculada,
+                                  tasaDeJusticiaMisiones: tasaCalculada,
+                                  saldoPendiente: nuevoSaldo,
+                                },
+                              };
+                              if (onActualizarExpediente) {
+                                onActualizarExpediente(actualizado);
+                              }
+                              setMensajeFinancieroGuardado(true);
+                              setTimeout(() => setMensajeFinancieroGuardado(false), 3000);
+                            }
+                            setMostrarCalculadoraTasa(false);
+                          }}
+                          disabled={!montoLitigioParaTasa || montoLitigioParaTasa <= 0}
+                          className="w-full py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-xs font-mono font-bold flex items-center justify-center space-x-1.5 transition-colors"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Aplicar Tasa al Expediente</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Editable Form Mode */}
+                {editandoFinanciero && (
+                  <div className="bg-slate-950 p-5 rounded-2xl border border-blue-500/50 space-y-5 shadow-2xl">
+                    <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-800/80 pb-3">
+                      <div className="flex items-center space-x-2 text-blue-400 font-mono text-xs font-bold">
+                        <Sparkles className="w-4 h-4" />
+                        <span>Edición de Estado Contable & Recalculador en Vivo</span>
+                      </div>
+
+                      {/* Quick Calculation Shortcuts */}
+                      <div className="flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setMostrarCalculadoraTasa(true)}
+                          className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-blue-300 rounded text-[11px] font-mono border border-blue-500/30 flex items-center space-x-1 transition-colors"
+                        >
+                          <Calculator className="w-3 h-3" />
+                          <span>Calcular 1.5% Tasa</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Suggest 10% of total honorarios for Caja Forense
+                            const diezPorCiento = Math.round(liveTotalHonorarios * 0.1);
+                            setFinAportesCaja(diezPorCiento);
+                          }}
+                          disabled={liveTotalHonorarios <= 0}
+                          className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-amber-300 rounded text-[11px] font-mono border border-amber-500/30 flex items-center space-x-1 transition-colors"
+                          title="Calcular automáticamente el 10% sobre honorarios para Caja Forense Misiones"
+                        >
+                          <Percent className="w-3 h-3" />
+                          <span>10% Caja Forense</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+                      <div className="space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <label className="block text-slate-400 text-[10px] uppercase font-bold">
+                          Honorarios Pactados (Convenio) ($):
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={finHonorariosPactados || ''}
+                          onChange={(e) => setFinHonorariosPactados(Math.max(0, Number(e.target.value)))}
+                          placeholder="0"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-bold font-mono text-sm"
+                        />
+                        <span className="text-[10px] text-slate-500 block">Acordado con el cliente</span>
+                      </div>
+
+                      <div className="space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <label className="block text-slate-400 text-[10px] uppercase font-bold">
+                          Honorarios Regulados en Autos ($):
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={finHonorariosRegulados || ''}
+                          onChange={(e) => setFinHonorariosRegulados(Math.max(0, Number(e.target.value)))}
+                          placeholder="0"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-bold font-mono text-sm"
+                        />
+                        <span className="text-[10px] text-slate-500 block">Fijados judicialmente</span>
+                      </div>
+
+                      <div className="space-y-1 bg-slate-900/60 p-3 rounded-xl border border-emerald-900/40">
+                        <label className="block text-emerald-400 text-[10px] uppercase font-bold">
+                          Honorarios Cobrados / Percibidos ($):
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={finHonorariosCobrados || ''}
+                          onChange={(e) => setFinHonorariosCobrados(Math.max(0, Number(e.target.value)))}
+                          placeholder="0"
+                          className="w-full bg-slate-950 border border-emerald-700/60 rounded-lg px-3 py-2 text-emerald-400 focus:outline-none focus:border-emerald-500 font-bold font-mono text-sm"
+                        />
+                        <span className="text-[10px] text-emerald-500/80 block">Abonado por el cliente</span>
+                      </div>
+
+                      <div className="space-y-1 bg-slate-900/60 p-3 rounded-xl border border-blue-900/40">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-blue-400 text-[10px] uppercase font-bold">
+                            Monto de Tasas (de Justicia / Adm.) ($):
+                          </label>
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={finMontoTasas || ''}
+                          onChange={(e) => setFinMontoTasas(Math.max(0, Number(e.target.value)))}
+                          placeholder="0"
+                          className="w-full bg-slate-950 border border-blue-700/60 rounded-lg px-3 py-2 text-blue-300 focus:outline-none focus:border-blue-500 font-bold font-mono text-sm"
+                        />
+                        <span className="text-[10px] text-blue-400/80 block">Tasa de Justicia 1.5% o tasa administrativa</span>
+                      </div>
+
+                      <div className="space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <label className="block text-amber-400 text-[10px] uppercase font-bold">
+                          Gastos Extras / Gestoría ($):
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={finGastosExtras || ''}
+                          onChange={(e) => setFinGastosExtras(Math.max(0, Number(e.target.value)))}
+                          placeholder="0"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-amber-300 focus:outline-none focus:border-amber-500 font-bold font-mono text-sm"
+                        />
+                        <span className="text-[10px] text-slate-500 block">Peritajes, traslados, informes</span>
+                      </div>
+
+                      <div className="space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <label className="block text-slate-400 text-[10px] uppercase font-bold">
+                          Diligenciamientos y Notificaciones ($):
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={finDiligenciamiento || ''}
+                          onChange={(e) => setFinDiligenciamiento(Math.max(0, Number(e.target.value)))}
+                          placeholder="0"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-bold font-mono text-sm"
+                        />
+                        <span className="text-[10px] text-slate-500 block">Cédulas, mandamientos, oficiales de justicia</span>
+                      </div>
+
+                      <div className="space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <label className="block text-slate-400 text-[10px] uppercase font-bold">
+                          Aportes Caja Forense Misiones ($):
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={finAportesCaja || ''}
+                          onChange={(e) => setFinAportesCaja(Math.max(0, Number(e.target.value)))}
+                          placeholder="0"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-mono text-sm"
+                        />
+                        <span className="text-[10px] text-slate-500 block">Ley Previsional Forense</span>
+                      </div>
+
+                      <div className="space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <label className="block text-slate-400 text-[10px] uppercase font-bold">
+                          Aportes Colegio Abogados (CADAM) ($):
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={finAportesColegio || ''}
+                          onChange={(e) => setFinAportesColegio(Math.max(0, Number(e.target.value)))}
+                          placeholder="0"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-mono text-sm"
+                        />
+                        <span className="text-[10px] text-slate-500 block">Bono y derecho fijo colegial</span>
+                      </div>
+
+                      <div className="space-y-1 bg-slate-900/60 p-3 rounded-xl border border-slate-800 flex flex-col justify-between">
+                        <label className="block text-slate-400 text-[10px] uppercase font-bold">
+                          Estado de Pago de la Tasa:
+                        </label>
+                        <label className="flex items-center space-x-2.5 p-2 bg-slate-950 rounded-lg border border-slate-700 cursor-pointer hover:border-slate-600 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={finTasaPagada}
+                            onChange={(e) => setFinTasaPagada(e.target.checked)}
+                            className="w-4 h-4 text-emerald-500 rounded bg-slate-900 border-slate-700 focus:ring-emerald-500"
+                          />
+                          <span className={`text-xs font-bold font-mono ${finTasaPagada ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {finTasaPagada ? '✓ Tasa de Justicia Pagada' : '⚠️ Tasa de Justicia Pendiente'}
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Live Recalculation Bar */}
+                    <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                      <div>
+                        <span className="text-[10px] text-slate-500 block uppercase">Total Honorarios</span>
+                        <strong className="text-slate-200 text-sm">$ {liveTotalHonorarios.toLocaleString('es-AR')}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-emerald-500 block uppercase">Honorarios Cobrados</span>
+                        <strong className="text-emerald-400 text-sm">$ {liveHonorariosCobrados.toLocaleString('es-AR')}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-blue-400 block uppercase">Gastos, Tasas y Aportes</span>
+                        <strong className="text-blue-300 text-sm">$ {liveTotalGastosAportes.toLocaleString('es-AR')}</strong>
+                      </div>
+                      <div className="bg-slate-950 p-2 rounded-lg border border-red-900/40">
+                        <span className="text-[10px] text-red-400 block uppercase font-bold">Saldo Pendiente Neto</span>
+                        <strong className="text-red-400 text-base font-extrabold">$ {liveSaldoPendienteTotal.toLocaleString('es-AR')}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Primary Financial Dashboard (4 Big KPI Cards) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Tarjeta 1: Total General de la Causa */}
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5 shadow-sm hover:border-slate-700 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono uppercase font-bold text-slate-400">Total General Causa</span>
+                      <Receipt className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div className="text-xl font-extrabold text-slate-100 font-mono">
+                      $ {viewTotalGeneralCausa.toLocaleString('es-AR')}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between">
+                      <span>Honorarios + Gastos + Aportes</span>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-400">
-                      Saldo Estimado a Cobrar:{' '}
-                      <strong className="text-amber-400 font-bold">
-                        ${' '}
-                        {Math.max(
-                          0,
-                          (finHonorariosPactados || finHonorariosRegulados) -
-                            finHonorariosCobrados +
-                            (finTasaPagada ? 0 : finMontoTasas) +
-                            finGastosExtras +
-                            finDiligenciamiento
-                        ).toLocaleString('es-AR')}
-                      </strong>
+                  {/* Tarjeta 2: Honorarios & Cobros */}
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5 shadow-sm hover:border-slate-700 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono uppercase font-bold text-slate-400">Total Honorarios</span>
+                      <Wallet className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div className="text-xl font-extrabold text-slate-100 font-mono">
+                      $ {viewTotalHonorarios.toLocaleString('es-AR')}
+                    </div>
+                    <div className="text-[10px] font-mono flex items-center justify-between">
+                      <span className="text-emerald-400 font-bold">Cobrado: $ {viewHonorariosCobrados.toLocaleString('es-AR')}</span>
+                      <span className="text-slate-500">Saldo: $ {viewSaldoHonorarios.toLocaleString('es-AR')}</span>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta 3: Tasas Judiciales & Estado */}
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5 shadow-sm hover:border-slate-700 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono uppercase font-bold text-slate-400">Tasa de Justicia (Misiones)</span>
+                      <Scale className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div className="text-xl font-extrabold text-blue-300 font-mono">
+                      $ {viewMontoTasas.toLocaleString('es-AR')}
+                    </div>
+                    <div>
+                      <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded-md inline-block ${
+                        viewTasaPagada ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/60' : 'bg-amber-950/80 text-amber-400 border border-amber-800/60'
+                      }`}>
+                        {viewTasaPagada ? '✓ TASA PAGADA' : '⚠️ PENDIENTE DE PAGO'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta 4: Saldo Pendiente Neto del Cliente */}
+                  <div className="bg-slate-950 p-4 rounded-xl border border-red-900/50 bg-gradient-to-br from-slate-950 to-red-950/20 space-y-1.5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono uppercase font-bold text-red-400">Saldo Total Pendiente</span>
+                      <AlertCircle className="w-4 h-4 text-red-400" />
+                    </div>
+                    <div className="text-xl font-extrabold text-red-400 font-mono">
+                      $ {viewSaldoPendienteTotal.toLocaleString('es-AR')}
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono block">
+                      A liquidar y percibir del cliente
                     </span>
                   </div>
                 </div>
-              ) : null}
 
-              {/* Financial Dashboard Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-500 block">Honorarios Pactados / Regulados</span>
-                  <div className="text-lg font-bold text-slate-100 font-mono">
-                    $ {(expediente.financiero.honorariosPactados || expediente.financiero.honorariosRegulados || 0).toLocaleString('es-AR')}
+                {/* Detailed Breakdown Panels */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                  {/* Panel Izquierdo: Desglose de Honorarios */}
+                  <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <span className="font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                        <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Desglose de Honorarios</span>
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Total: $ {viewTotalHonorarios.toLocaleString('es-AR')}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center justify-between py-1 border-b border-slate-900">
+                        <span className="text-slate-400">Honorarios Pactados (Convenio):</span>
+                        <span className="text-slate-100 font-bold">$ {viewHonorariosPactados.toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-900">
+                        <span className="text-slate-400">Honorarios Regulados en Sentencia/Auto:</span>
+                        <span className="text-slate-100 font-bold">$ {viewHonorariosRegulados.toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-900 text-emerald-400">
+                        <span className="text-emerald-400/90 font-medium">Honorarios Cobrados / Pagos a Cuenta:</span>
+                        <span className="font-bold">$ {viewHonorariosCobrados.toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1 text-slate-300 font-bold">
+                        <span>Saldo Pendiente de Honorarios:</span>
+                        <span className="text-amber-400">$ {viewSaldoHonorarios.toLocaleString('es-AR')}</span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-[10px] text-emerald-400 font-mono block">
-                    Cobrado: $ {expediente.financiero.honorariosCobrados.toLocaleString('es-AR')}
-                  </span>
+
+                  {/* Panel Derecho: Gastos Operativos, Tasas y Aportes */}
+                  <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <span className="font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                        <Building className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Tasas, Gastos y Aportes Previsionales</span>
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Subtotal: $ {viewTotalGastosAportes.toLocaleString('es-AR')}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center justify-between py-1 border-b border-slate-900">
+                        <span className="text-slate-400">Tasa de Justicia / Administrativa:</span>
+                        <div className="text-right">
+                          <span className="text-blue-300 font-bold">$ {viewMontoTasas.toLocaleString('es-AR')}</span>
+                          <span className={`ml-2 text-[10px] font-bold ${viewTasaPagada ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            ({viewTasaPagada ? 'Pagada' : 'Pendiente'})
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-900">
+                        <span className="text-slate-400">Gastos Extras (Pericias / Gestoría):</span>
+                        <span className="text-amber-300 font-bold">$ {viewGastosExtras.toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-900">
+                        <span className="text-slate-400">Diligenciamientos / Mandamientos:</span>
+                        <span className="text-slate-200 font-bold">$ {viewGastosDilig.toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-900">
+                        <span className="text-slate-400">Aportes Caja Forense (Misiones):</span>
+                        <span className="text-slate-200 font-bold">$ {viewAportesCaja.toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-900">
+                        <span className="text-slate-400">Aportes Colegio de Abogados (CADAM):</span>
+                        <span className="text-slate-200 font-bold">$ {viewAportesColegio.toLocaleString('es-AR')}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-500 block">Monto de Tasas</span>
-                  <div className="text-lg font-bold text-blue-400 font-mono">
-                    $ {(expediente.financiero.montoTasas ?? expediente.financiero.tasaDeJusticiaMisiones ?? 0).toLocaleString('es-AR')}
+                {/* Bottom Resumen Bar */}
+                <div className="bg-slate-900/90 p-4 rounded-xl border border-slate-800 flex items-center justify-between flex-wrap gap-4 text-xs font-mono">
+                  <div className="flex items-center space-x-2 text-slate-400">
+                    <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>
+                      Total Percibido / Cobrado: <strong className="text-emerald-400 font-bold">$ {viewTotalPercibido.toLocaleString('es-AR')}</strong>
+                    </span>
                   </div>
-                  <span className={`text-[10px] font-bold font-mono ${expediente.financiero.tasaJusticiaPagada ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {expediente.financiero.tasaJusticiaPagada ? '✓ TASA PAGADA' : '⚠️ PENDIENTE DE PAGO'}
-                  </span>
-                </div>
 
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-500 block">Gastos Extras</span>
-                  <div className="text-lg font-bold text-amber-400 font-mono">
-                    $ {(expediente.financiero.gastosExtras || 0).toLocaleString('es-AR')}
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-mono block">Pericias, traslados, etc.</span>
-                </div>
+                  <div className="flex items-center space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setMostrarCalculadoraTasa(true)}
+                      className="text-blue-400 hover:text-blue-300 underline text-[11px] font-mono flex items-center space-x-1"
+                    >
+                      <Calculator className="w-3.5 h-3.5" />
+                      <span>Calcular Tasa Judicial 1.5%</span>
+                    </button>
 
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-500 block">Saldo Pendiente Cliente</span>
-                  <div className="text-lg font-bold text-red-400 font-mono">
-                    $ {expediente.financiero.saldoPendiente.toLocaleString('es-AR')}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const texto = generarTextoLiquidacion();
+                        const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Liquidacion_${expediente.numero.replace(/[^a-zA-Z0-9_-]/g, '_')}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-mono flex items-center space-x-1.5 border border-slate-700 transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Descargar Liquidación (.txt)</span>
+                    </button>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-mono block">A cobrar total</span>
                 </div>
               </div>
-
-              {/* Aportes breakdown */}
-              <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3 font-mono text-xs">
-                <span className="font-bold text-slate-300 uppercase tracking-wider block border-b border-slate-800 pb-2">
-                  Desglose Previsional y Contributivo (Ley Prov. Misiones / Caja Forense & CADAM)
-                </span>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Aportes Caja Forense:</span>
-                    <span className="text-slate-200 font-bold">$ {expediente.financiero.aportesCajaForense.toLocaleString('es-AR')}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Aportes Colegio de Abogados (CADAM):</span>
-                    <span className="text-slate-200 font-bold">$ {expediente.financiero.aportesCajaAbogados.toLocaleString('es-AR')}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">Gastos de Diligenciamiento / Cédulas:</span>
-                    <span className="text-slate-200 font-bold">$ {expediente.financiero.gastosDiligenciamiento.toLocaleString('es-AR')}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {activeTab === 'documentos' && (
             <div className="space-y-4">

@@ -12,6 +12,7 @@ interface CalendarViewProps {
   onAgregarDiaInhabil: (dia: DiaInhabil) => void;
   onEliminarDiaInhabil: (id: string) => void;
   onActualizarEstadoTarea?: (id: string, nuevoEstado: 'Pendiente' | 'En Progreso' | 'Completada' | 'Cancelada') => void;
+  onActualizarExpediente?: (expedienteActualizado: Expediente) => void;
   onSelectTab?: (tab: string) => void;
 }
 
@@ -23,6 +24,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onAgregarDiaInhabil,
   onEliminarDiaInhabil,
   onActualizarEstadoTarea,
+  onActualizarExpediente,
   onSelectTab,
 }) => {
   const [vista, setVista] = useState<'calculador' | 'mes' | 'semana' | 'ferias'>('mes');
@@ -511,6 +513,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           isOpen={!!expedienteParaVer}
           onClose={() => setExpedienteParaVer(null)}
           expediente={expedientes.find(e => e.id === expedienteParaVer.id) || expedienteParaVer}
+          onActualizarExpediente={(actualizado) => {
+            if (onActualizarExpediente) {
+              onActualizarExpediente(actualizado);
+            }
+            setExpedienteParaVer(actualizado);
+          }}
         />
       )}
 
