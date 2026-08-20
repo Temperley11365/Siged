@@ -498,3 +498,65 @@ export interface PeticionProcesamientoSiged {
   texto_actuacion: string;
   fecha_notificacion?: string;
 }
+
+// -------------------------------------------------------------
+// 7. Respaldo Integral, Nube y Restauración en Punto en el Tiempo
+// -------------------------------------------------------------
+export type FrecuenciaRespaldo = 'EN_CADA_CAMBIO' | 'CADA_6_HORAS' | 'CADA_12_HORAS' | 'DIARIO' | 'SEMANAL' | 'MANUAL';
+export type DestinoRespaldo = 'LOCAL_PC' | 'GOOGLE_DRIVE' | 'AMBOS';
+
+export interface ConfiguracionRespaldoAutomatico {
+  habilitado: boolean;
+  destino: DestinoRespaldo;
+  frecuencia: FrecuenciaRespaldo;
+  mantenerMaxSnapshots: number;
+  ultimoRespaldoIso?: string;
+  proximoRespaldoIso?: string;
+  googleDriveFolder?: string;
+  googleDriveToken?: string;
+  googleDriveUserEmail?: string;
+  notificarAlGuardar: boolean;
+}
+
+export interface BackupSnapshotEstadisticas {
+  totalExpedientes: number;
+  totalActuaciones: number;
+  totalAudiencias: number;
+  totalPruebas: number;
+  totalTareas: number;
+  totalDocumentos: number;
+}
+
+// Aliases for compatibility
+export type ActuacionProcesal = ActuacionSIGED;
+export type Audiencia = AudienciaExpediente;
+export type MedioPrueba = PruebaExpediente;
+
+export interface BackupSnapshot {
+  id: string;
+  fechaIso: string;
+  fechaHoraLegible: string;
+  origen: 'LOCAL_AUTO' | 'LOCAL_MANUAL' | 'GOOGLE_DRIVE' | 'CLOUD_RESTORE';
+  versionSistema: string;
+  tamanoBytes: number;
+  tamanoLegible: string;
+  autorNombre: string;
+  autorMatricula: string;
+  descripcion: string;
+  estadisticas: BackupSnapshotEstadisticas;
+  googleDriveFileId?: string;
+  googleDriveWebUrl?: string;
+  datos: {
+    expedientes: Expediente[];
+    actuaciones: ActuacionSIGED[];
+    audiencias: AudienciaExpediente[];
+    pruebas: PruebaExpediente[];
+    tareas: TareaEstudio[];
+    documentos: DocumentoEstudio[];
+    diasInhabiles: DiaInhabil[];
+    tramitesPortales?: TramitePortalExterno[];
+    modelosRepositorio?: ModeloEscritoRepositorio[];
+    progresosPasos?: ProgresoPasosExpediente[];
+  };
+}
+

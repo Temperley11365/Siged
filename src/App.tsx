@@ -40,6 +40,18 @@ import {
   AlertaPushProgramable
 } from './types';
 
+import {
+  obtenerConfiguracionRespaldo,
+  guardarConfiguracionRespaldo,
+  generarSnapshotObjeto,
+  guardarSnapshotEnHistorial
+} from './lib/backupManager';
+import { 
+  subirSnapshotAGoogleDrive, 
+  estaAutenticadoConGoogleDrive,
+  obtenerTokenGoogleDriveActivo 
+} from './lib/googleDriveService';
+
 import { 
   INITIAL_ABOGADOS, 
   INITIAL_EXPEDIENTES, 
@@ -617,6 +629,70 @@ export default function App() {
     return () => clearInterval(interval);
   }, [abogadoActual, handleSincronizarSiged]);
 
+  // Periodic Auto-Backup to Local & Google Drive System
+  useEffect(() => {
+    if (!abogadoActual) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const config = obtenerConfiguracionRespaldo();
+        if (!config.habilitado) return;
+
+        const ahora = Date.now();
+        let intervaloMs = 24 * 60 * 60 * 1000; // DIARIO
+        if (config.frecuencia === 'CADA_6_HORAS') intervaloMs = 6 * 60 * 60 * 1000;
+        if (config.frecuencia === 'CADA_12_HORAS') intervaloMs = 12 * 60 * 60 * 1000;
+        if (config.frecuencia === 'SEMANAL') intervaloMs = 7 * 24 * 60 * 60 * 1000;
+
+        const ultimoRespaldo = config.ultimoRespaldoIso ? new Date(config.ultimoRespaldoIso).getTime() : 0;
+        
+        if (ahora - ultimoRespaldo >= intervaloMs) {
+          const snapshot = generarSnapshotObjeto({
+            expedientes,
+            actuaciones: actuaciones as any,
+            audiencias: audiencias as any,
+            pruebas: pruebas as any,
+            tareas,
+            documentos,
+            diasInhabiles,
+            tramitesPortales,
+            modelosRepositorio,
+            progresosPasos
+          }, abogadoActual, 'LOCAL_AUTO', 'Copia de seguridad periódica automática');
+
+          // Guardar snapshot local
+          guardarSnapshotEnHistorial(snapshot, config.mantenerMaxSnapshots);
+
+          // Si tiene destino Google Drive y token activo, subir
+          const gdriveTokenActivo = obtenerTokenGoogleDriveActivo();
+          if ((config.destino === 'GOOGLE_DRIVE' || config.destino === 'AMBOS') && gdriveTokenActivo) {
+            try {
+              const resDrive = await subirSnapshotAGoogleDrive(snapshot, gdriveTokenActivo);
+              if (resDrive.exito) {
+                snapshot.googleDriveFileId = resDrive.fileId;
+                guardarSnapshotEnHistorial(snapshot, config.mantenerMaxSnapshots);
+              }
+            } catch (errDrive) {
+              console.warn('No se pudo subir respaldo automático a Google Drive:', errDrive);
+            }
+          }
+
+          // Actualizar marcas temporales
+          const configActualizada = {
+            ...config,
+            ultimoRespaldoIso: new Date(ahora).toISOString(),
+            proximoRespaldoIso: new Date(ahora + intervaloMs).toISOString()
+          };
+          guardarConfiguracionRespaldo(configActualizada);
+        }
+      } catch (err) {
+        console.error('Error ejecutando respaldo programado:', err);
+      }
+    }, 120000); // Chequea cada 2 minutos
+
+    return () => clearInterval(intervalId);
+  }, [abogadoActual, expedientes, actuaciones, audiencias, pruebas, tareas, documentos, diasInhabiles, tramitesPortales, modelosRepositorio, progresosPasos]);
+
   const handleGuardarCredencialesSiged = async (nuevasCreds: CredencialesSIGED) => {
     if (!abogadoActual) return;
 
@@ -1012,6 +1088,21 @@ export default function App() {
         tareas={tareas}
         documentos={documentos}
         diasInhabiles={diasInhabiles}
+        tramitesPortales={tramitesPortales}
+        modelosRepositorio={modelosRepositorio}
+        progresosPasos={progresosPasos}
+        onRestaurarDatos={(datos) => {
+          if (datos.expedientes) setExpedientes(datos.expedientes);
+          if (datos.actuaciones) setActuaciones(datos.actuaciones as any);
+          if (datos.pruebas) setPruebas(datos.pruebas as any);
+          if (datos.audiencias) setAudiencias(datos.audiencias as any);
+          if (datos.tareas) setTareas(datos.tareas);
+          if (datos.documentos) setDocumentos(datos.documentos);
+          if (datos.diasInhabiles) setDiasInhabiles(datos.diasInhabiles);
+          if (datos.tramitesPortales) setTramitesPortales(datos.tramitesPortales);
+          if (datos.modelosRepositorio) setModelosRepositorio(datos.modelosRepositorio);
+          if (datos.progresosPasos) setProgresosPasos(datos.progresosPasos);
+        }}
       />
 
       {/* Modal de Registro e Iniciar Sesión de Profesionales */}
