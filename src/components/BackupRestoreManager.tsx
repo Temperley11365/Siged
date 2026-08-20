@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Shield, Cloud, HardDrive, RefreshCw, Clock, CheckCircle2, 
   AlertTriangle, Upload, Download, Trash2, Calendar, FileJson, 
-  Settings2, Eye, Database, Info, ExternalLink, Sparkles, Folder
+  Settings2, Eye, Database, Info, ExternalLink, Sparkles, Folder,
+  UserCheck, Lock
 } from 'lucide-react';
 import { 
   BackupSnapshot, ConfiguracionRespaldoAutomatico, FrecuenciaRespaldo, 
@@ -18,7 +19,8 @@ import {
 } from '../lib/backupManager';
 import { 
   conectarGoogleDriveOAuth, subirSnapshotAGoogleDrive, 
-  listarRespaldosGoogleDrive, descargarSnapshotDeDrive, GoogleDriveFileMeta 
+  listarRespaldosGoogleDrive, descargarSnapshotDeDrive, GoogleDriveFileMeta,
+  obtenerEmailGoogleDriveConectado, GOOGLE_CLOUD_PROJECT_ID, GOOGLE_CLOUD_PROJECT_NAME
 } from '../lib/googleDriveService';
 
 interface BackupRestoreManagerProps {
@@ -76,6 +78,7 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
 
   // Google Drive state
   const [gdriveToken, setGdriveToken] = useState<string | null>(sessionStorage.getItem('gdrive_access_token'));
+  const [gdriveEmail, setGdriveEmail] = useState<string | null>(obtenerEmailGoogleDriveConectado() || abogadoActual.email);
   const [isConnectingDrive, setIsConnectingDrive] = useState(false);
 
   // Input file ref
@@ -112,7 +115,7 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
         datos, 
         abogadoActual, 
         destino === 'GOOGLE_DRIVE' ? 'GOOGLE_DRIVE' : 'LOCAL_MANUAL',
-        `Respaldo manual solicitado por ${abogadoActual.nombre} (${datos.expedientes.length} expedientes)`
+        `Respaldo del Proyecto SIGED Misiones - Titular: ${abogadoActual.nombre} (${datos.expedientes.length} expedientes)`
       );
 
       // 1. Guardar en historial local / localStorage
@@ -128,11 +131,11 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
       let driveMsg = '';
       if (destino === 'GOOGLE_DRIVE' || destino === 'AMBOS') {
         if (!gdriveToken) {
-          driveMsg = ' (Pendiente Google Drive: Conecte su cuenta para sincronización en la nube)';
+          driveMsg = ' (Aviso: Inicie sesión en Google Drive para subir automáticamente la copia a su nube personal)';
         } else {
-          const driveRes = await subirSnapshotAGoogleDrive(snapshot, gdriveToken);
+          const driveRes = await subirSnapshotAGoogleDrive(snapshot, gdriveToken, abogadoActual.email);
           if (driveRes.exito) {
-            driveMsg = ' y subido exitosamente a Google Drive';
+            driveMsg = ` y guardado exitosamente en el Google Drive de ${abogadoActual.email}`;
             cargarRespaldosDeDrive(gdriveToken);
           } else {
             driveMsg = ` (Aviso Drive: ${driveRes.error})`;
@@ -148,8 +151,8 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
       setConfig(nuevaConfig);
       guardarConfiguracionRespaldo(nuevaConfig);
 
-      setMensajeExito(`¡Copia de seguridad generada con éxito! [${snapshot.fechaHoraLegible}]${driveMsg}`);
-      setTimeout(() => setMensajeExito(null), 5000);
+      setMensajeExito(`¡Copia de seguridad del Proyecto SIGED generada con éxito! [${snapshot.fechaHoraLegible}]${driveMsg}`);
+      setTimeout(() => setMensajeExito(null), 5500);
     } catch (e: any) {
       setMensajeError(`Error al generar respaldo: ${e.message || e}`);
     } finally {
@@ -161,8 +164,9 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
     setIsConnectingDrive(true);
     setMensajeError(null);
     try {
-      const auth = await conectarGoogleDriveOAuth();
+      const auth = await conectarGoogleDriveOAuth(abogadoActual.email);
       setGdriveToken(auth.accessToken);
+      setGdriveEmail(abogadoActual.email);
       const nuevaConfig = {
         ...config,
         googleDriveToken: auth.accessToken,
@@ -170,8 +174,8 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
       setConfig(nuevaConfig);
       guardarConfiguracionRespaldo(nuevaConfig);
       await cargarRespaldosDeDrive(auth.accessToken);
-      setMensajeExito('¡Cuenta de Google Drive autorizada correctamente para respaldos!');
-      setTimeout(() => setMensajeExito(null), 4000);
+      setMensajeExito(`¡Google Drive de ${abogadoActual.email} conectado exitosamente para resguardo del Proyecto SIGED!`);
+      setTimeout(() => setMensajeExito(null), 4500);
     } catch (err: any) {
       setMensajeError(err?.message || 'No se pudo autorizar Google Drive. Verifique los permisos en el navegador.');
     } finally {
@@ -224,7 +228,7 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
             fechaIso: timestamp,
             fechaHoraLegible: new Date().toLocaleString('es-AR'),
             origen: 'LOCAL_MANUAL',
-            versionSistema: 'Kairós Legal (Importado)',
+            versionSistema: 'Kairós Legal - SIGED Misiones (Importado)',
             tamanoBytes: file.size,
             tamanoLegible: `${(file.size / 1024).toFixed(1)} KB`,
             autorNombre: parsed._metadatos_seguridad?.exportado_por?.nombre || 'Archivo Externo',
@@ -319,7 +323,7 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
 
   return (
     <div className="space-y-4 font-mono">
-      {/* Header Banner */}
+      {/* Header Banner - Google Cloud SIGED Project & User Drive */}
       <div className="bg-slate-950/90 p-4 rounded-xl border border-slate-800 space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
           <div className="flex items-center space-x-2.5">
@@ -327,14 +331,14 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
               <Cloud className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center space-x-2">
-                <span>Centro de Respaldos & Restauración de Memoria</span>
+              <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex flex-wrap items-center gap-1.5">
+                <span>Respaldos & Memoria: {GOOGLE_CLOUD_PROJECT_NAME}</span>
                 <span className="text-[9px] bg-blue-900/60 text-blue-300 border border-blue-700/50 px-2 py-0.5 rounded font-bold">
-                  Google Cloud • Firebase • Google Drive • Local PC
+                  Google Cloud: {GOOGLE_CLOUD_PROJECT_ID}
                 </span>
               </h3>
               <p className="text-[11px] text-slate-400 font-sans">
-                Protección integral contra pérdidas, fallas de hardware y auditoría de causas judiciales.
+                El proyecto se resguarda en el Google Drive personal de <strong>{abogadoActual.nombre}</strong> (<span className="text-emerald-400 font-mono">{abogadoActual.email}</span>) y en la nube oficial de <strong>SIGED Misiones</strong>.
               </p>
             </div>
           </div>
@@ -345,10 +349,10 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
               onClick={() => handleCrearRespaldoAhora('AMBOS')}
               disabled={isProcessing}
               className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center space-x-2 shadow-lg shadow-emerald-950/60 transition-all cursor-pointer disabled:opacity-50"
-              title="Generar Respaldo Inmediato en PC y Nube"
+              title="Guardar estado del proyecto en mi Drive y descargar copia"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isProcessing ? 'animate-spin' : ''}`} />
-              <span>Crear Respaldo Ahora</span>
+              <span>Guardar en mi Drive & PC</span>
             </button>
           </div>
         </div>
@@ -356,20 +360,15 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
         {/* Status Indicators */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-[11px]">
           <div className="p-2.5 bg-slate-900/80 rounded-lg border border-slate-800 flex items-center justify-between">
-            <span className="text-slate-400">Frecuencia Automática:</span>
-            <span className="text-blue-400 font-bold">
-              {config.frecuencia === 'DIARIO' && 'Diaria (24 hs)'}
-              {config.frecuencia === 'EN_CADA_CAMBIO' && 'En Cada Modificación'}
-              {config.frecuencia === 'CADA_6_HORAS' && 'Cada 6 Horas'}
-              {config.frecuencia === 'CADA_12_HORAS' && 'Cada 12 Horas'}
-              {config.frecuencia === 'SEMANAL' && 'Semanal'}
-              {config.frecuencia === 'MANUAL' && 'Solo Manual'}
+            <span className="text-slate-400">Usuario Titular Drive:</span>
+            <span className="text-emerald-400 font-bold truncate max-w-[170px]" title={abogadoActual.email}>
+              {abogadoActual.email}
             </span>
           </div>
 
           <div className="p-2.5 bg-slate-900/80 rounded-lg border border-slate-800 flex items-center justify-between">
             <span className="text-slate-400">Destino Configurado:</span>
-            <span className="text-emerald-400 font-bold">
+            <span className="text-blue-400 font-bold">
               {config.destino === 'AMBOS' && 'Google Drive + PC'}
               {config.destino === 'GOOGLE_DRIVE' && 'Google Drive (Nube)'}
               {config.destino === 'LOCAL_PC' && 'Computadora Local (JSON)'}
@@ -425,7 +424,7 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
           }`}
         >
           <Cloud className="w-3.5 h-3.5" />
-          <span>Google Drive Cloud</span>
+          <span>Google Drive de {abogadoActual.nombre.split(' ')[0]}</span>
           {gdriveToken && <span className="w-2 h-2 rounded-full bg-emerald-400"></span>}
         </button>
 
@@ -560,51 +559,66 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
       {activeSubTab === 'google_drive' && (
         <div className="space-y-4">
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center space-x-2.5">
                 <div className="p-2 bg-emerald-950/70 text-emerald-400 border border-emerald-600/40 rounded-xl">
                   <Cloud className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-slate-100 uppercase">
-                    Integración con Google Drive de su Cuenta
+                  <h4 className="text-xs font-bold text-slate-100 uppercase flex items-center space-x-2">
+                    <span>Google Drive Personal: {abogadoActual.email}</span>
                   </h4>
                   <p className="text-[11px] text-slate-400 font-sans">
-                    Guarda automáticamente copias cifradas en su carpeta privada de Google Drive: <strong>{config.googleDriveFolder}</strong>.
+                    Los respaldos del proyecto se depositan en su unidad privada de Google Drive en la carpeta <strong>Kairós Legal - SIGED Misiones</strong>.
                   </p>
                 </div>
               </div>
 
               {gdriveToken ? (
-                <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-600/50 px-2.5 py-1 rounded-full font-bold flex items-center space-x-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                  <span>Conectado</span>
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-600/50 px-2.5 py-1 rounded-full font-bold flex items-center space-x-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <span>Conectado: {abogadoActual.email}</span>
+                  </span>
+                </div>
               ) : (
                 <button
                   type="button"
                   onClick={handleConectarGoogleDrive}
                   disabled={isConnectingDrive}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center space-x-2 shadow-lg cursor-pointer"
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center space-x-2 shadow-lg cursor-pointer shrink-0"
                 >
                   <Cloud className="w-3.5 h-3.5" />
-                  <span>{isConnectingDrive ? 'Conectando...' : 'Conectar Google Drive'}</span>
+                  <span>{isConnectingDrive ? 'Conectando...' : `Conectar Drive (${abogadoActual.email})`}</span>
                 </button>
               )}
             </div>
 
-            {gdriveToken && (
-              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                <span className="text-slate-400">Acceso OAuth2 autorizado para archivos creados por Kairós.</span>
+            {/* Direct Sync Action */}
+            <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="text-slate-400 flex items-center space-x-1.5">
+                <Lock className="w-3.5 h-3.5 text-blue-400" />
+                <span>Infraestructura: Google Cloud SIGED Misiones (<em>{GOOGLE_CLOUD_PROJECT_ID}</em>)</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => handleCrearRespaldoAhora('GOOGLE_DRIVE')}
+                  disabled={isProcessing}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1.5 transition-all shadow cursor-pointer disabled:opacity-50"
+                >
+                  <Cloud className="w-3.5 h-3.5" />
+                  <span>Subir Respaldo a mi Drive</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => handleConectarGoogleDrive()}
                   className="text-blue-400 hover:underline text-[11px]"
                 >
-                  Renovar autorización / Cambiar cuenta
+                  Cambiar cuenta
                 </button>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Archivos en Google Drive */}
@@ -613,7 +627,7 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
               <div className="flex items-center justify-between text-xs text-slate-300">
                 <span className="font-bold flex items-center space-x-1.5">
                   <Folder className="w-4 h-4 text-amber-400" />
-                  <span>Respaldos en la Nube (Google Drive)</span>
+                  <span>Respaldos en la Nube (Google Drive de {abogadoActual.email})</span>
                 </span>
                 <button
                   type="button"
@@ -646,11 +660,22 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
                       <div className="space-y-0.5">
                         <strong className="block text-slate-200">{file.name}</strong>
                         <span className="text-[10px] text-slate-500">
-                          Fecha Drive: {new Date(file.createdTime).toLocaleString('es-AR')} • {file.description || 'Respaldo Kairós'}
+                          Fecha Drive: {new Date(file.createdTime).toLocaleString('es-AR')} • {file.description || 'Respaldo SIGED'}
                         </span>
                       </div>
 
                       <div className="flex items-center space-x-2">
+                        {file.webViewLink && (
+                          <a
+                            href={file.webViewLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg text-xs"
+                            title="Abrir en Google Drive"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleDescargarDeDriveYRestaurar(file.id)}
@@ -710,8 +735,8 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
                 onChange={(e) => handleGuardarConfiguracion({ ...config, destino: e.target.value as DestinoRespaldo })}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
               >
-                <option value="AMBOS">Google Drive + Computadora Local (Máxima Seguridad)</option>
-                <option value="GOOGLE_DRIVE">Solo Google Drive (Nube Privada)</option>
+                <option value="AMBOS">Google Drive del Usuario + Computadora Local (Máxima Seguridad)</option>
+                <option value="GOOGLE_DRIVE">Solo Google Drive del Usuario ({abogadoActual.email})</option>
                 <option value="LOCAL_PC">Solo Computadora del Usuario (Descarga JSON)</option>
               </select>
               <span className="text-[10px] text-slate-500 block">
@@ -764,7 +789,7 @@ export const BackupRestoreManager: React.FC<BackupRestoreManagerProps> = ({
                 Cargar Archivo de Respaldo (.JSON) desde su Disco Local
               </h4>
               <p className="text-[11px] text-slate-400 max-w-md mx-auto font-sans mt-1">
-                Seleccione un archivo previamente descargado (o copia de seguridad en pendrive) para restaurar la totalidad de causas, decretos y tareas.
+                Seleccione un archivo previamente descargado del Proyecto SIGED para restaurar la totalidad de causas, decretos y tareas.
               </p>
             </div>
 

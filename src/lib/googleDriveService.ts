@@ -7,8 +7,10 @@ declare global {
   }
 }
 
-const DRIVE_FOLDER_NAME = 'Kairós Legal - Respaldos Automáticos';
-const OAUTH_CLIENT_ID = '336926638781-client.apps.googleusercontent.com'; // configured via set_up_oauth
+export const GOOGLE_CLOUD_PROJECT_ID = 'gen-lang-client-0255089972';
+export const GOOGLE_CLOUD_PROJECT_NAME = 'SIGED Misiones - Kairós Legal Cloud';
+
+export const OAUTH_CLIENT_ID = '336926638781-fgkq987508t8rddrl6e0qms3s56993fk.apps.googleusercontent.com';
 
 export interface GoogleDriveFileMeta {
   id: string;
@@ -18,6 +20,7 @@ export interface GoogleDriveFileMeta {
   modifiedTime: string;
   size?: string;
   description?: string;
+  webViewLink?: string;
 }
 
 export interface GoogleDriveAuthResult {
@@ -39,6 +42,13 @@ export function estaAutenticadoConGoogleDrive(): boolean {
 }
 
 /**
+ * Retorna el email del usuario conectado a Google Drive si existe
+ */
+export function obtenerEmailGoogleDriveConectado(): string | null {
+  return sessionStorage.getItem('gdrive_user_email');
+}
+
+/**
  * Retorna el token actual si está activo
  */
 export function obtenerTokenGoogleDriveActivo(): string | null {
@@ -50,14 +60,21 @@ export function obtenerTokenGoogleDriveActivo(): string | null {
 
 /**
  * Solicita autorización de OAuth2 Client de Google para Drive
+ * vinculando directamente la cuenta del usuario registrado.
  */
-export async function conectarGoogleDriveOAuth(): Promise<GoogleDriveAuthResult> {
+export async function conectarGoogleDriveOAuth(userEmail?: string): Promise<GoogleDriveAuthResult> {
   return new Promise((resolve, reject) => {
     // Si ya tenemos token en sessionStorage válido
     const tokenGuardado = sessionStorage.getItem('gdrive_access_token');
     const tokenExpira = sessionStorage.getItem('gdrive_token_exp');
     if (tokenGuardado && tokenExpira && Date.now() < parseInt(tokenExpira, 10)) {
-      resolve({ accessToken: tokenGuardado });
+      if (userEmail) {
+        sessionStorage.setItem('gdrive_user_email', userEmail);
+      }
+      resolve({ 
+        accessToken: tokenGuardado,
+        email: userEmail || sessionStorage.getItem('gdrive_user_email') || undefined
+      });
       return;
     }
 
@@ -68,23 +85,29 @@ export async function conectarGoogleDriveOAuth(): Promise<GoogleDriveAuthResult>
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        iniciarOAuthPrompt(resolve, reject);
+        iniciarOAuthPrompt(resolve, reject, userEmail);
       };
       script.onerror = () => {
         reject(new Error('No se pudo cargar el cliente de autenticación de Google Identity Services.'));
       };
       document.body.appendChild(script);
     } else {
-      iniciarOAuthPrompt(resolve, reject);
+      iniciarOAuthPrompt(resolve, reject, userEmail);
     }
   });
 }
 
-function iniciarOAuthPrompt(resolve: (val: GoogleDriveAuthResult) => void, reject: (err: any) => void) {
+function iniciarOAuthPrompt(
+  resolve: (val: GoogleDriveAuthResult) => void, 
+  reject: (err: any) => void,
+  userEmail?: string
+) {
   try {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: OAUTH_CLIENT_ID,
       scope: 'https://www.googleapis.com/auth/drive.file',
+      hint: userEmail,
+      login_hint: userEmail,
       callback: (response: any) => {
         if (response.error !== undefined) {
           reject(response);
@@ -94,23 +117,36 @@ function iniciarOAuthPrompt(resolve: (val: GoogleDriveAuthResult) => void, rejec
         const expiresInMs = (response.expires_in ? parseInt(response.expires_in, 10) : 3600) * 1000;
         sessionStorage.setItem('gdrive_access_token', accessToken);
         sessionStorage.setItem('gdrive_token_exp', String(Date.now() + expiresInMs));
-        resolve({ accessToken, expiresIn: expiresInMs });
+        if (userEmail) {
+          sessionStorage.setItem('gdrive_user_email', userEmail);
+        }
+        resolve({ accessToken, expiresIn: expiresInMs, email: userEmail });
       },
     });
 
-    tokenClient.requestAccessToken({ prompt: 'consent' });
+    tokenClient.requestAccessToken({ prompt: 'consent', hint: userEmail });
   } catch (e) {
     reject(e);
   }
 }
 
 /**
- * Busca o crea la carpeta de respaldos de Kairós en Google Drive
+ * Desconectar cuenta de Google Drive
  */
-export async function obtenerOCrearCarpetaDrive(accessToken: string): Promise<string> {
+export function desconectarGoogleDrive() {
+  sessionStorage.removeItem('gdrive_access_token');
+  sessionStorage.removeItem('gdrive_token_exp');
+  sessionStorage.removeItem('gdrive_user_email');
+}
+
+/**
+ * Busca o crea la carpeta de respaldos del proyecto en Google Drive del usuario
+ */
+export async function obtenerOCrearCarpetaDrive(accessToken: string, folderName?: string): Promise<string> {
+  const nombreCarpeta = folderName || 'Kairós Legal - SIGED Misiones';
   try {
     // 1. Buscar si ya existe la carpeta
-    const query = encodeURIComponent(`name = '${DRIVE_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
+    const query = encodeURIComponent(`name = '${nombreCarpeta}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
     const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name)`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -132,9 +168,9 @@ export async function obtenerOCrearCarpetaDrive(accessToken: string): Promise<st
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: DRIVE_FOLDER_NAME,
+        name: nombreCarpeta,
         mimeType: 'application/vnd.google-apps.folder',
-        description: 'Carpeta segura de respaldos automáticos y auditoría de Kairós Estudio Jurídico',
+        description: `Carpeta segura de respaldos - Proyecto SIGED Misiones (Google Cloud ID: ${GOOGLE_CLOUD_PROJECT_ID})`,
       }),
     });
 
@@ -149,28 +185,32 @@ export async function obtenerOCrearCarpetaDrive(accessToken: string): Promise<st
 }
 
 /**
- * Sube un snapshot de respaldo a Google Drive
+ * Sube un snapshot de respaldo del proyecto al Google Drive del usuario
  */
 export async function subirSnapshotAGoogleDrive(
   snapshot: BackupSnapshot, 
-  accessToken: string
-): Promise<{ exito: boolean; fileId?: string; error?: string }> {
+  accessToken: string,
+  userEmail?: string
+): Promise<{ exito: boolean; fileId?: string; webViewLink?: string; error?: string }> {
   try {
-    const folderId = await obtenerOCrearCarpetaDrive(accessToken);
+    const folderId = await obtenerOCrearCarpetaDrive(accessToken, 'Kairós Legal - SIGED Misiones');
     const sanitizedName = snapshot.autorNombre.replace(/\s+/g, '_').toLowerCase();
     const dateStr = snapshot.fechaIso.split('T')[0];
     const timeStr = snapshot.fechaIso.split('T')[1].replace(/:/g, '-').slice(0, 5);
-    const fileName = `respaldo_kairos_${sanitizedName}_${dateStr}_${timeStr}.json`;
+    const fileName = `respaldo_siged_${sanitizedName}_${dateStr}_${timeStr}.json`;
 
     const metadata = {
       name: fileName,
-      description: snapshot.descripcion,
+      description: `Copia de Seguridad del Proyecto SIGED Misiones - Titular: ${snapshot.autorNombre} (${userEmail || snapshot.autorMatricula})`,
       mimeType: 'application/json',
       parents: [folderId],
       properties: {
         kairosSnapshotId: snapshot.id,
         fechaIso: snapshot.fechaIso,
         autor: snapshot.autorNombre,
+        titularEmail: userEmail || '',
+        googleCloudProject: GOOGLE_CLOUD_PROJECT_ID,
+        sistemaDestino: 'SIGED Misiones - Kairós Legal',
         totalExpedientes: String(snapshot.estadisticas.totalExpedientes),
         totalActuaciones: String(snapshot.estadisticas.totalActuaciones),
       },
@@ -191,7 +231,7 @@ export async function subirSnapshotAGoogleDrive(
       closeDelimiter;
 
     const response = await fetch(
-      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',
       {
         method: 'POST',
         headers: {
@@ -204,7 +244,7 @@ export async function subirSnapshotAGoogleDrive(
 
     if (response.ok) {
       const data = await response.json();
-      return { exito: true, fileId: data.id };
+      return { exito: true, fileId: data.id, webViewLink: data.webViewLink };
     } else {
       const errData = await response.text();
       return { exito: false, error: `Error de Google Drive API: ${errData}` };
@@ -215,13 +255,13 @@ export async function subirSnapshotAGoogleDrive(
 }
 
 /**
- * Lista los respaldos disponibles en la carpeta de Google Drive
+ * Lista los respaldos disponibles en la carpeta de Google Drive del usuario
  */
 export async function listarRespaldosGoogleDrive(accessToken: string): Promise<GoogleDriveFileMeta[]> {
   try {
-    const query = encodeURIComponent(`name contains 'respaldo_kairos_' and trashed = false`);
+    const query = encodeURIComponent(`(name contains 'respaldo_siged_' or name contains 'respaldo_kairos_') and trashed = false`);
     const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=createdTime desc&fields=files(id,name,mimeType,createdTime,modifiedTime,size,description)&pageSize=20`,
+      `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=createdTime desc&fields=files(id,name,mimeType,createdTime,modifiedTime,size,description,webViewLink)&pageSize=30`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
