@@ -130,6 +130,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
     setLoading(true);
     let nuevoAbogado: Abogado | null = null;
+    const tieneCredsSiged = !!(regUsuarioSiged.trim() && regClaveSiged.trim());
 
     try {
       const res = await fetch('/api/auth/register', {
@@ -142,9 +143,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           matricula: regMatricula.trim(),
           rol: regRol,
           telefono: regTelefono.trim(),
-          usuarioSiged: regUsuarioSiged.trim() || `${regEmail.split('@')[0]}.siged`,
-          claveSiged: regClaveSiged.trim() || '••••••••••••',
-          pinCertificadoDigital: regPinCertificado.trim() || '884192',
+          usuarioSiged: regUsuarioSiged.trim(),
+          claveSiged: regClaveSiged.trim(),
+          pinCertificadoDigital: regPinCertificado.trim(),
         }),
       });
 
@@ -177,15 +178,23 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         rol: regRol,
         telefono: regTelefono.trim() || '+5493764000000',
         avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`,
-        credencialesSiged: {
-          usuarioSiged: regUsuarioSiged.trim() || `${regEmail.split('@')[0]}.siged`,
-          claveSiged: regClaveSiged.trim() || '••••••••••••',
-          pinCertificadoDigital: regPinCertificado.trim() || '884192',
+        credencialesSiged: tieneCredsSiged ? {
+          usuarioSiged: regUsuarioSiged.trim(),
+          claveSiged: regClaveSiged.trim(),
+          pinCertificadoDigital: regPinCertificado.trim(),
           estadoConexion: 'Conectado',
           ultimaSincronizacion: new Date().toISOString().replace('T', ' ').substring(0, 16),
           sincronizacionAutomatica: true,
           frecuenciaMinutos: 15,
           notificacionesPushWeb: true,
+        } : {
+          usuarioSiged: '',
+          claveSiged: '',
+          pinCertificadoDigital: '',
+          estadoConexion: 'Desconectado',
+          sincronizacionAutomatica: false,
+          frecuenciaMinutos: 15,
+          notificacionesPushWeb: false,
         },
       };
     }

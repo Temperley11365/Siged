@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Abogado, Expediente, ActuacionSIGED, DocumentoEstudio, PruebaExpediente, AudienciaExpediente, ModeloEscritoRepositorio, ProgresoPasosExpediente } from '../types';
-import { FileText, Search, UserCheck, Scale, ExternalLink, Eye, Filter, PlusCircle, Users } from 'lucide-react';
+import { FileText, Search, UserCheck, Scale, ExternalLink, Eye, Filter, PlusCircle, Users, CheckCircle2 } from 'lucide-react';
 import { FichaExpedienteModal } from './FichaExpedienteModal';
 
 interface ExpedientesViewProps {
@@ -19,6 +19,7 @@ interface ExpedientesViewProps {
   onTogglePasoCompletado?: (expedienteId: string, modeloId: string, pasoId: string) => void;
   onGuardarDocumentoExpediente?: (expedienteId: string, doc: DocumentoEstudio) => void;
   onAbrirEditorConTexto?: (texto: string, titulo: string, exp: Expediente) => void;
+  onActualizarExpediente?: (expedienteActualizado: Expediente) => void;
 }
 
 export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
@@ -37,6 +38,7 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
   onTogglePasoCompletado,
   onGuardarDocumentoExpediente,
   onAbrirEditorConTexto,
+  onActualizarExpediente,
 }) => {
   const [busqueda, setBusqueda] = useState('');
   const [filtroFuero, setFiltroFuero] = useState('todos');
@@ -374,15 +376,38 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons: Ficha Completa + Procesar SIGED */}
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
-                <button
-                  onClick={() => setExpedienteSeleccionado(exp)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold uppercase tracking-wider rounded transition-colors flex items-center space-x-1 border border-slate-700"
-                >
-                  <Eye className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Ficha Completa</span>
-                </button>
+              {/* Action Buttons: Ficha Completa + Finalizar Trámite + Procesar SIGED */}
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setExpedienteSeleccionado(exp)}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold uppercase tracking-wider rounded transition-colors flex items-center space-x-1 border border-slate-700"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Ficha Completa</span>
+                  </button>
+
+                  {onActualizarExpediente && (
+                    <button
+                      onClick={() => {
+                        const nuevoEstado = exp.estado === 'Finalizado' ? 'En trámite' : 'Finalizado';
+                        onActualizarExpediente({
+                          ...exp,
+                          estado: nuevoEstado,
+                        });
+                      }}
+                      className={`px-2.5 py-1.5 rounded text-[10px] font-mono font-bold flex items-center space-x-1 transition-all border ${
+                        exp.estado === 'Finalizado'
+                          ? 'bg-emerald-950/80 text-emerald-300 border-emerald-600/60 hover:bg-emerald-900'
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-emerald-400 hover:border-emerald-700'
+                      }`}
+                      title={exp.estado === 'Finalizado' ? 'Reabrir trámite' : 'Marcar trámite como finalizado'}
+                    >
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <span>{exp.estado === 'Finalizado' ? 'Finalizado' : 'Finalizar'}</span>
+                    </button>
+                  )}
+                </div>
 
                 {actuacionExpte && (
                   <button
@@ -403,7 +428,7 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
       <FichaExpedienteModal
         isOpen={!!expedienteSeleccionado}
         onClose={() => setExpedienteSeleccionado(null)}
-        expediente={expedienteSeleccionado}
+        expediente={expedientes.find(e => e.id === expedienteSeleccionado?.id) || expedienteSeleccionado}
         documentos={documentos}
         pruebas={pruebas}
         audiencias={audiencias}
@@ -412,6 +437,7 @@ export const ExpedientesView: React.FC<ExpedientesViewProps> = ({
         onTogglePasoCompletado={onTogglePasoCompletado}
         onGuardarDocumentoExpediente={onGuardarDocumentoExpediente}
         onAbrirEditorConTexto={onAbrirEditorConTexto}
+        onActualizarExpediente={onActualizarExpediente}
       />
 
       {/* Modal Alta de Causa */}

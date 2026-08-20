@@ -124,11 +124,13 @@ export interface EstadoFinancieroCausa {
   honorariosPactados: number;
   honorariosRegulados: number;
   honorariosCobrados: number;
-  tasaDeJusticiaMisiones: number; // 1.5% o tasa fija
+  tasaDeJusticiaMisiones: number; // 1.5% o tasa fija / monto de tasas
+  montoTasas?: number; // Monto de tasas generales o administrativas
   tasaJusticiaPagada: boolean;
   aportesCajaForense: number;
   aportesCajaAbogados: number;
   gastosDiligenciamiento: number;
+  gastosExtras?: number; // Gastos extras de gestoría / pericias / traslados
   saldoPendiente: number;
 }
 
@@ -144,7 +146,7 @@ export interface Expediente {
   letrado_patrocinante: string;
   apoderado?: string;
   fecha_inicio: string;
-  estado: 'En trámite' | 'Con plazo pendiente' | 'Dictamen pendiente' | 'Archivado';
+  estado: 'En trámite' | 'Con plazo pendiente' | 'Dictamen pendiente' | 'Archivado' | 'Finalizado';
   cliente: string;
   partes: ParteInterviniente[];
   movimientos: MovimientoExpediente[];
@@ -298,13 +300,14 @@ export interface DocumentoEstudio {
   nombre: string;
   expediente_id?: string;
   carpeta: string; // e.g., "EXP-1420", "Modelos Escritos", "Jurisprudencia STJ"
-  tipoArchivo: 'pdf' | 'docx' | 'txt';
+  tipoArchivo: 'pdf' | 'docx' | 'doc' | 'txt';
   tamanio: string;
   fecha_modificacion: string;
   autor: string;
   contenidoTexto?: string;
   contenidoSimulado?: string;
   pdfSimuladoUrl?: string;
+  fileDataUrl?: string;
 }
 
 export interface PlantillaDocx {

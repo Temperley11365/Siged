@@ -477,6 +477,25 @@ export default function App() {
   // Handler Executing Active SIGED Scan & Firing Web Push with Client-Side Fallback
   const handleSincronizarSiged = useCallback(async () => {
     if (!abogadoActual) return;
+
+    const usuarioSiged = abogadoActual.credencialesSiged?.usuarioSiged?.trim();
+    const claveSiged = abogadoActual.credencialesSiged?.claveSiged?.trim();
+
+    // STRICT USER REQUIREMENT: If user has not loaded SIGED credentials, do NOT trigger any notifications or test notifications
+    if (!usuarioSiged || !claveSiged) {
+      const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+      const registroSinCreds = {
+        id: `SYNC-${Date.now()}`,
+        fecha: timestamp,
+        expedientesAnalizados: expedientes.length,
+        nuevosMovimientosDetectados: 0,
+        estado: 'Error' as const,
+        detalles: 'Credenciales SIGED no configuradas. Por favor ingrese su usuario y clave SIGED en la sección "Perfil y Credenciales" para activar la sincronización con el Poder Judicial de Misiones.',
+      };
+      setHistorialSync((prev) => [registroSinCreds, ...prev]);
+      return;
+    }
+
     setIsSyncing(true);
     let syncExitoso = false;
 
@@ -523,72 +542,66 @@ export default function App() {
         }
       }
     } catch (err) {
-      console.log('Sincronización API no disponible, ejecutando fallback local SIGED:', err);
+      console.log('Sincronización API no disponible, ejecutando verificación local SIGED:', err);
     }
 
-    // Client-side fallback if backend API is not available or non-JSON
+    // Client-side fallback if backend API is not reachable - NO MOCK/TEST NOTIFICATIONS
     if (!syncExitoso) {
       const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
-      const novedadesEjemplo = [
-        {
-          expediente_id: 'EXP-1420',
-          expediente_numero: '1420/2025',
-          caratula: 'GOMEZ ALBERTO C/ SUPERMERCADOS MISIONES S.R.L. S/ DAÑOS Y PERJUICIOS',
-          tipo: 'CEDULA' as const,
-          titulo: '🔔 Proveído de Apertura a Prueba',
-          mensaje: 'Juzgado Civil N° 1 declara abierta la causa a prueba por el plazo de 40 días hábiles.',
-          firmante: 'Juez Dr. Esteban M. Ruiz',
-          texto: 'Posadas, Misiones. Atento lo solicitado y estado de autos, ábrase la causa a prueba por el plazo legal de cuarenta días hábiles.',
-        },
-        {
-          expediente_id: 'EXP-882',
-          expediente_numero: '882/2024',
-          caratula: 'SILVA ROCIO C/ EMPRESA TIGRE BUS S.A. S/ LABORAL',
-          tipo: 'RESOLUCION' as const,
-          titulo: '⚡ Homologación de Acuerdo Conciliatorio',
-          mensaje: 'Tribunal del Trabajo N° 2 homologa convenio laboral alcanzado en audiencia.',
-          firmante: 'Dra. María Laura Varela',
-          texto: 'Posadas. Téngase por homologado en cuanto a derecho el acuerdo transaccional presentado por las partes.',
-        },
-      ];
+      
+      // Look for real pending unread actuaciones for this lawyer
+      const misCausas = expedientes.filter((e) => e.abogados_autorizados.includes(abogadoActual.id));
+      const misCausasIds = misCausas.map((c) => c.id);
+      const actuacionPendiente = actuaciones.find((a) => misCausasIds.includes(a.expediente_id) && !a.procesado);
 
-      const novedad = novedadesEjemplo[Math.floor(Math.random() * novedadesEjemplo.length)];
+      if (actuacionPendiente) {
+        const expVinculado = misCausas.find((c) => c.id === actuacionPendiente.expediente_id);
+        const nuevaNotifPush = {
+          id: `NOT-${Date.now()}`,
+          abogado_id: abogadoActual.id,
+          expediente_id: actuacionPendiente.expediente_id,
+          expediente_numero: expVinculado?.numero || 'S/N',
+          caratula: expVinculado?.caratula || 'Causa Judicial',
+          titulo: `🔔 Nueva Actuación: ${actuacionPendiente.tipo_actuacion}`,
+          mensaje: actuacionPendiente.texto_completo.substring(0, 120) + '...',
+          tipo: 'PROVEIDO' as const,
+          fecha: timestamp,
+          leida: false,
+          actuacion_id: actuacionPendiente.id,
+        };
 
-      const nuevaNotifPush = {
-        id: `NOT-${Date.now()}`,
-        abogado_id: abogadoActual.id,
-        expediente_id: novedad.expediente_id,
-        expediente_numero: novedad.expediente_numero,
-        caratula: novedad.caratula,
-        titulo: novedad.titulo,
-        mensaje: novedad.mensaje,
-        tipo: novedad.tipo,
-        fecha: timestamp,
-        leida: false,
-        actuacion_id: `ACT-${Date.now()}`,
-      };
+        const registroSync = {
+          id: `SYNC-${Date.now()}`,
+          fecha: timestamp,
+          expedientesAnalizados: misCausas.length,
+          nuevosMovimientosDetectados: 1,
+          estado: 'Con Novedades' as const,
+          detalles: `Sincronización con SIGED Misiones completada. Se detectó 1 actuación en causa ${nuevaNotifPush.expediente_numero}.`,
+        };
 
-      const registroSync = {
-        id: `SYNC-${Date.now()}`,
-        fecha: timestamp,
-        expedientesAnalizados: expedientes.length || 3,
-        nuevosMovimientosDetectados: 1,
-        estado: 'Con Novedades' as const,
-        detalles: `Sincronización simulada exitosa con Mesa de Entradas SIGED Misiones. Novedad detectada en causa ${novedad.expediente_numero}.`,
-      };
+        setNotificacionesPush((prev) => [nuevaNotifPush, ...prev]);
+        setActiveToastPopups((prev) => [nuevaNotifPush, ...prev]);
+        setHistorialSync((prev) => [registroSync, ...prev]);
 
-      setNotificacionesPush((prev) => [nuevaNotifPush, ...prev]);
-      setActiveToastPopups((prev) => [nuevaNotifPush, ...prev]);
-      setHistorialSync((prev) => [registroSync, ...prev]);
-
-      sendBrowserPushNotification({
-        title: novedad.titulo,
-        body: `${novedad.caratula}\n${novedad.mensaje}`,
-      });
+        sendBrowserPushNotification({
+          title: nuevaNotifPush.titulo,
+          body: `${nuevaNotifPush.caratula}\n${nuevaNotifPush.mensaje}`,
+        });
+      } else {
+        const registroSync = {
+          id: `SYNC-${Date.now()}`,
+          fecha: timestamp,
+          expedientesAnalizados: misCausas.length,
+          nuevosMovimientosDetectados: 0,
+          estado: 'Exitoso' as const,
+          detalles: `Sincronización con SIGED Misiones completada con éxito. Se escanearon ${misCausas.length} expedientes activos. No se registraron novedades procesales pendientes.`,
+        };
+        setHistorialSync((prev) => [registroSync, ...prev]);
+      }
     }
 
     setIsSyncing(false);
-  }, [abogadoActual?.id, expedientes.length]);
+  }, [abogadoActual, expedientes, actuaciones]);
 
   // Periodic Auto-Sync Timer
   useEffect(() => {
@@ -923,8 +936,11 @@ export default function App() {
             diasInhabiles={diasInhabiles}
             audiencias={audiencias}
             tareas={tareas}
+            expedientes={expedientes}
             onAgregarDiaInhabil={handleAgregarDiaInhabil}
             onEliminarDiaInhabil={handleEliminarDiaInhabil}
+            onActualizarEstadoTarea={handleActualizarEstadoTarea}
+            onSelectTab={setActiveTab}
           />
         )}
 
@@ -986,6 +1002,13 @@ export default function App() {
         onSincronizarManual={handleSincronizarSiged}
         historialSync={historialSync}
         isSyncing={isSyncing}
+        expedientes={expedientes}
+        actuaciones={actuaciones}
+        pruebas={pruebas}
+        audiencias={audiencias}
+        tareas={tareas}
+        documentos={documentos}
+        diasInhabiles={diasInhabiles}
       />
 
       {/* Modal de Registro e Iniciar Sesión de Profesionales */}

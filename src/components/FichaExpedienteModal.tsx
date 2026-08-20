@@ -17,6 +17,7 @@ interface FichaExpedienteModalProps {
   onTogglePasoCompletado?: (expedienteId: string, modeloId: string, pasoId: string) => void;
   onGuardarDocumentoExpediente?: (expedienteId: string, doc: DocumentoEstudio) => void;
   onAbrirEditorConTexto?: (texto: string, titulo: string, exp: Expediente) => void;
+  onActualizarExpediente?: (expedienteActualizado: Expediente) => void;
 }
 
 export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
@@ -31,6 +32,7 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
   onTogglePasoCompletado,
   onGuardarDocumentoExpediente,
   onAbrirEditorConTexto,
+  onActualizarExpediente,
 }) => {
   const [activeTab, setActiveTab] = useState<'resumen' | 'partes' | 'movimientos' | 'financiero' | 'documentos' | 'guias'>('resumen');
   
@@ -40,7 +42,42 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
   const [modeloParaGenerar, setModeloParaGenerar] = useState<ModeloEscritoRepositorio | null>(null);
   const [copiadoExito, setCopiadoExito] = useState(false);
 
+  // Financial Form Editable State
+  const [editandoFinanciero, setEditandoFinanciero] = useState(false);
+  const [finHonorariosPactados, setFinHonorariosPactados] = useState<number>(expediente?.financiero?.honorariosPactados ?? 0);
+  const [finHonorariosRegulados, setFinHonorariosRegulados] = useState<number>(expediente?.financiero?.honorariosRegulados ?? 0);
+  const [finHonorariosCobrados, setFinHonorariosCobrados] = useState<number>(expediente?.financiero?.honorariosCobrados ?? 0);
+  const [finMontoTasas, setFinMontoTasas] = useState<number>(expediente?.financiero?.montoTasas ?? expediente?.financiero?.tasaDeJusticiaMisiones ?? 0);
+  const [finTasaPagada, setFinTasaPagada] = useState<boolean>(expediente?.financiero?.tasaJusticiaPagada ?? false);
+  const [finGastosExtras, setFinGastosExtras] = useState<number>(expediente?.financiero?.gastosExtras ?? 0);
+  const [finAportesCaja, setFinAportesCaja] = useState<number>(expediente?.financiero?.aportesCajaForense ?? 0);
+  const [finAportesColegio, setFinAportesColegio] = useState<number>(expediente?.financiero?.aportesCajaAbogados ?? 0);
+  const [finDiligenciamiento, setFinDiligenciamiento] = useState<number>(expediente?.financiero?.gastosDiligenciamiento ?? 0);
+  const [mensajeFinancieroGuardado, setMensajeFinancieroGuardado] = useState(false);
+
+  // Keep financial state in sync when expediente changes
+  React.useEffect(() => {
+    if (expediente) {
+      setFinHonorariosPactados(expediente.financiero.honorariosPactados || 0);
+      setFinHonorariosRegulados(expediente.financiero.honorariosRegulados || 0);
+      setFinHonorariosCobrados(expediente.financiero.honorariosCobrados || 0);
+      setFinMontoTasas(expediente.financiero.montoTasas ?? expediente.financiero.tasaDeJusticiaMisiones ?? 0);
+      setFinTasaPagada(expediente.financiero.tasaJusticiaPagada || false);
+      setFinGastosExtras(expediente.financiero.gastosExtras || 0);
+      setFinAportesCaja(expediente.financiero.aportesCajaForense || 0);
+      setFinAportesColegio(expediente.financiero.aportesCajaAbogados || 0);
+      setFinDiligenciamiento(expediente.financiero.gastosDiligenciamiento || 0);
+      setEditandoFinanciero(false);
+    }
+  }, [expediente?.id]);
+
   if (!isOpen || !expediente) return null;
+
+  const esAnsesOFederal = 
+    expediente.sistemaOrigen === 'ANSES e-TRAMITE' || 
+    expediente.sistemaOrigen === 'PJN - Justicia Federal' || 
+    expediente.fuero === 'ANSES / Previsional' || 
+    expediente.fuero === 'Justicia Federal';
 
   const docsCausa = documentos.filter((d) => d.expediente_id === expediente.id || d.carpeta === expediente.id);
   const pruebasCausa = pruebas.filter((p) => p.expediente_id === expediente.id);
@@ -112,7 +149,7 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
         {/* Top Header */}
         <div className="bg-slate-950 px-6 py-4 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-wrap gap-y-1">
               <span className="text-xs font-mono font-bold text-blue-400 bg-blue-600/20 border border-blue-500/30 px-2.5 py-0.5 rounded">
                 EXPTE N° {expediente.numero}
               </span>
@@ -122,18 +159,47 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
               <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-blue-900/40 text-blue-300 border border-blue-700/50">
                 {expediente.fuero}
               </span>
+              {expediente.sistemaOrigen && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase bg-slate-800 text-slate-300 border border-slate-700">
+                  {expediente.sistemaOrigen}
+                </span>
+              )}
             </div>
             <h2 className="text-base font-bold text-slate-100 mt-1 line-clamp-1">
               {expediente.caratula}
             </h2>
           </div>
 
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
-          >
-            ✕
-          </button>
+          <div className="flex items-center space-x-3">
+            {onActualizarExpediente && (
+              <button
+                type="button"
+                onClick={() => {
+                  const nuevoEstado = expediente.estado === 'Finalizado' ? 'En trámite' : 'Finalizado';
+                  onActualizarExpediente({
+                    ...expediente,
+                    estado: nuevoEstado,
+                  });
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center space-x-1.5 transition-all border ${
+                  expediente.estado === 'Finalizado'
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-950/50'
+                    : 'bg-slate-800 hover:bg-emerald-950/60 text-slate-300 hover:text-emerald-300 border-slate-700 hover:border-emerald-700'
+                }`}
+                title={expediente.estado === 'Finalizado' ? 'Haga clic para reabrir expediente' : 'Marcar trámite como finalizado'}
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>{expediente.estado === 'Finalizado' ? '✓ Trámite Finalizado' : 'Finalizar Trámite'}</span>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Tab Header Navigation */}
@@ -169,7 +235,7 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
             }`}
           >
             <Clock className="w-4 h-4" />
-            <span>Historial SIGED ({expediente.movimientos.length})</span>
+            <span>{esAnsesOFederal ? `Historial (${expediente.movimientos.length})` : `Historial SIGED (${expediente.movimientos.length})`}</span>
           </button>
           <button
             onClick={() => setActiveTab('financiero')}
@@ -202,7 +268,7 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
             }`}
           >
             <BookOpen className="w-4 h-4 text-amber-400" />
-            <span>Guía y Escritos del Repositorio</span>
+            <span>Guía Procesal y Escritos</span>
           </button>
         </div>
 
@@ -383,41 +449,258 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
           {activeTab === 'movimientos' && (
             <div className="space-y-4">
               <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-800">
-                Historial de Actuaciones y Notificaciones SIGED Misiones
+                {esAnsesOFederal ? 'Historial de Actuaciones y Movimientos' : 'Historial de Actuaciones y Notificaciones SIGED Misiones'}
               </h3>
 
-              <div className="space-y-3">
-                {expediente.movimientos.map((m) => (
-                  <div key={m.id} className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="font-bold text-blue-400">{m.tipo}</span>
-                      <span className="text-slate-500">{m.fecha}</span>
+              {expediente.movimientos.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 bg-slate-950 rounded-xl border border-slate-800 text-xs">
+                  No hay movimientos registrados para esta causa.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {expediente.movimientos.map((m) => (
+                    <div key={m.id} className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="font-bold text-blue-400">{m.tipo}</span>
+                        <span className="text-slate-500">{m.fecha}</span>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed">{m.descripcion}</p>
+                      <div className="text-[11px] text-slate-500 font-mono pt-2 border-t border-slate-900 flex items-center justify-between">
+                        <span>Firmante: {m.firmante}</span>
+                        <span className="text-emerald-400 flex items-center space-x-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>{esAnsesOFederal ? 'Movimiento Registrado' : 'Firma Digital SIGED OK'}</span>
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">{m.descripcion}</p>
-                    <div className="text-[11px] text-slate-500 font-mono pt-2 border-t border-slate-900 flex items-center justify-between">
-                      <span>Firmante: {m.firmante}</span>
-                      <span className="text-emerald-400 flex items-center space-x-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Firma Digital SIGED OK</span>
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'financiero' && (
             <div className="space-y-6">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-800">
-                Estado Financiero, Tasas de Justicia y Caja Forense Misiones
-              </h3>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800 flex-wrap gap-2">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-300">
+                    Estado Financiero, Tasas, Honorarios y Gastos
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    Control contable de honorarios profesionales, tasas judiciales/administrativas y gastos extras
+                  </p>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-2">
+                  {editandoFinanciero ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onActualizarExpediente) {
+                            const saldoCalc = Math.max(
+                              0,
+                              (finHonorariosPactados || finHonorariosRegulados) -
+                                finHonorariosCobrados +
+                                (finTasaPagada ? 0 : finMontoTasas) +
+                                finGastosExtras +
+                                finDiligenciamiento
+                            );
+
+                            const actualizado: Expediente = {
+                              ...expediente,
+                              financiero: {
+                                ...expediente.financiero,
+                                honorariosPactados: Number(finHonorariosPactados) || 0,
+                                honorariosRegulados: Number(finHonorariosRegulados) || 0,
+                                honorariosCobrados: Number(finHonorariosCobrados) || 0,
+                                montoTasas: Number(finMontoTasas) || 0,
+                                tasaDeJusticiaMisiones: Number(finMontoTasas) || 0,
+                                tasaJusticiaPagada: Boolean(finTasaPagada),
+                                gastosExtras: Number(finGastosExtras) || 0,
+                                aportesCajaForense: Number(finAportesCaja) || 0,
+                                aportesCajaAbogados: Number(finAportesColegio) || 0,
+                                gastosDiligenciamiento: Number(finDiligenciamiento) || 0,
+                                saldoPendiente: saldoCalc,
+                              },
+                            };
+                            onActualizarExpediente(actualizado);
+                            setEditandoFinanciero(false);
+                            setMensajeFinancieroGuardado(true);
+                            setTimeout(() => setMensajeFinancieroGuardado(false), 3000);
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-mono font-bold flex items-center space-x-1.5 shadow-md shadow-emerald-950/40 transition-all"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Guardar Cambios</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditandoFinanciero(false)}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-mono transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditandoFinanciero(true)}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-mono font-bold flex items-center space-x-1.5 shadow-md shadow-blue-950/40 transition-all"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Editar Estado Financiero</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {mensajeFinancieroGuardado && (
+                <div className="p-3 bg-emerald-950/80 border border-emerald-500/50 rounded-xl text-emerald-300 text-xs font-mono flex items-center space-x-2 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>¡Estado financiero actualizado y guardado correctamente!</span>
+                </div>
+              )}
+
+              {/* Editable Form Mode */}
+              {editandoFinanciero ? (
+                <div className="bg-slate-950 p-5 rounded-2xl border border-blue-500/40 space-y-4">
+                  <div className="flex items-center space-x-2 text-blue-400 font-mono text-xs font-bold">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Modificar Valores Contables del Expediente</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+                    <div className="space-y-1">
+                      <label className="block text-slate-400 text-[10px] uppercase">Honorarios Pactados ($):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={finHonorariosPactados}
+                        onChange={(e) => setFinHonorariosPactados(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-bold font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-slate-400 text-[10px] uppercase">Honorarios Regulados ($):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={finHonorariosRegulados}
+                        onChange={(e) => setFinHonorariosRegulados(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-bold font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-slate-400 text-[10px] uppercase">Honorarios Cobrados ($):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={finHonorariosCobrados}
+                        onChange={(e) => setFinHonorariosCobrados(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-emerald-400 focus:outline-none focus:border-emerald-500 font-bold font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-slate-400 text-[10px] uppercase">Monto de Tasas (de Justicia / Adm.) ($):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={finMontoTasas}
+                        onChange={(e) => setFinMontoTasas(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-blue-400 focus:outline-none focus:border-blue-500 font-bold font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-slate-400 text-[10px] uppercase">Gastos Extras ($):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={finGastosExtras}
+                        onChange={(e) => setFinGastosExtras(Number(e.target.value))}
+                        placeholder="Pericias, traslados, etc."
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-amber-400 focus:outline-none focus:border-amber-500 font-bold font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-slate-400 text-[10px] uppercase">Gastos de Diligenciamiento ($):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={finDiligenciamiento}
+                        onChange={(e) => setFinDiligenciamiento(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-bold font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-slate-400 text-[10px] uppercase">Aportes Caja Forense Misiones ($):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={finAportesCaja}
+                        onChange={(e) => setFinAportesCaja(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-slate-400 text-[10px] uppercase">Aportes Colegio Abogados (CADAM) ($):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={finAportesColegio}
+                        onChange={(e) => setFinAportesColegio(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-blue-500 font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1 flex flex-col justify-end">
+                      <label className="flex items-center space-x-2 p-2 bg-slate-900 rounded-lg border border-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={finTasaPagada}
+                          onChange={(e) => setFinTasaPagada(e.target.checked)}
+                          className="w-4 h-4 text-emerald-500 rounded bg-slate-950 border-slate-700 focus:ring-emerald-500"
+                        />
+                        <span className="text-[11px] text-slate-200 font-mono">
+                          {finTasaPagada ? '✓ Tasa Pagada' : '⚠️ Tasa Pendiente'}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-400">
+                      Saldo Estimado a Cobrar:{' '}
+                      <strong className="text-amber-400 font-bold">
+                        ${' '}
+                        {Math.max(
+                          0,
+                          (finHonorariosPactados || finHonorariosRegulados) -
+                            finHonorariosCobrados +
+                            (finTasaPagada ? 0 : finMontoTasas) +
+                            finGastosExtras +
+                            finDiligenciamiento
+                        ).toLocaleString('es-AR')}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Financial Dashboard Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
                   <span className="text-[10px] font-mono uppercase text-slate-500 block">Honorarios Pactados / Regulados</span>
                   <div className="text-lg font-bold text-slate-100 font-mono">
-                    $ {expediente.financiero.honorariosPactados.toLocaleString('es-AR')}
+                    $ {(expediente.financiero.honorariosPactados || expediente.financiero.honorariosRegulados || 0).toLocaleString('es-AR')}
                   </div>
                   <span className="text-[10px] text-emerald-400 font-mono block">
                     Cobrado: $ {expediente.financiero.honorariosCobrados.toLocaleString('es-AR')}
@@ -425,41 +708,49 @@ export const FichaExpedienteModal: React.FC<FichaExpedienteModalProps> = ({
                 </div>
 
                 <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-500 block">Tasa de Justicia Misiones (1.5%)</span>
+                  <span className="text-[10px] font-mono uppercase text-slate-500 block">Monto de Tasas</span>
                   <div className="text-lg font-bold text-blue-400 font-mono">
-                    $ {expediente.financiero.tasaDeJusticiaMisiones.toLocaleString('es-AR')}
+                    $ {(expediente.financiero.montoTasas ?? expediente.financiero.tasaDeJusticiaMisiones ?? 0).toLocaleString('es-AR')}
                   </div>
                   <span className={`text-[10px] font-bold font-mono ${expediente.financiero.tasaJusticiaPagada ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {expediente.financiero.tasaJusticiaPagada ? '✓ TASA PAGADA EN DGR MISIONES' : '⚠️ PENDIENTE DE PAGO EN DGR'}
+                    {expediente.financiero.tasaJusticiaPagada ? '✓ TASA PAGADA' : '⚠️ PENDIENTE DE PAGO'}
                   </span>
                 </div>
 
                 <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-mono uppercase text-slate-500 block">Saldo Pendiente Cliente</span>
+                  <span className="text-[10px] font-mono uppercase text-slate-500 block">Gastos Extras</span>
                   <div className="text-lg font-bold text-amber-400 font-mono">
+                    $ {(expediente.financiero.gastosExtras || 0).toLocaleString('es-AR')}
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono block">Pericias, traslados, etc.</span>
+                </div>
+
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+                  <span className="text-[10px] font-mono uppercase text-slate-500 block">Saldo Pendiente Cliente</span>
+                  <div className="text-lg font-bold text-red-400 font-mono">
                     $ {expediente.financiero.saldoPendiente.toLocaleString('es-AR')}
                   </div>
-                  <span className="text-[10px] text-slate-500 font-mono block">Honorarios + Gastos</span>
+                  <span className="text-[10px] text-slate-500 font-mono block">A cobrar total</span>
                 </div>
               </div>
 
               {/* Aportes breakdown */}
               <div className="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3 font-mono text-xs">
                 <span className="font-bold text-slate-300 uppercase tracking-wider block border-b border-slate-800 pb-2">
-                  Desglose Previsional y Contributivo Misiones (Ley N° 3144 / Caja Forense)
+                  Desglose Previsional y Contributivo (Ley Prov. Misiones / Caja Forense & CADAM)
                 </span>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <span className="text-slate-500 block text-[10px]">Aportes Caja Forense Misiones:</span>
-                    <span className="text-slate-200">$ {expediente.financiero.aportesCajaForense.toLocaleString('es-AR')}</span>
+                    <span className="text-slate-500 block text-[10px]">Aportes Caja Forense:</span>
+                    <span className="text-slate-200 font-bold">$ {expediente.financiero.aportesCajaForense.toLocaleString('es-AR')}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block text-[10px]">Aportes Colegio de Abogados (CADAM):</span>
-                    <span className="text-slate-200">$ {expediente.financiero.aportesCajaAbogados.toLocaleString('es-AR')}</span>
+                    <span className="text-slate-200 font-bold">$ {expediente.financiero.aportesCajaAbogados.toLocaleString('es-AR')}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block text-[10px]">Gastos de Diligenciamiento / Cédulas:</span>
-                    <span className="text-slate-200">$ {expediente.financiero.gastosDiligenciamiento.toLocaleString('es-AR')}</span>
+                    <span className="text-slate-200 font-bold">$ {expediente.financiero.gastosDiligenciamiento.toLocaleString('es-AR')}</span>
                   </div>
                 </div>
               </div>

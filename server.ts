@@ -71,7 +71,7 @@ async function startServer() {
 
   // Autenticación: Registro de nuevos profesionales
   app.post('/api/auth/register', (req, res) => {
-    const { nombre, email, password, matricula, rol, telefono, usuarioSiged, claveSiged } = req.body;
+    const { nombre, email, password, matricula, rol, telefono, usuarioSiged, claveSiged, pinCertificadoDigital } = req.body;
 
     if (!nombre || !email || !password || !matricula) {
       return res.status(400).json({ error: 'Todos los campos obligatorios deben completarse' });
@@ -82,6 +82,8 @@ async function startServer() {
       return res.status(400).json({ error: 'El correo electrónico ya se encuentra registrado en el estudio' });
     }
 
+    const tieneCredsSiged = !!(usuarioSiged && usuarioSiged.trim() && claveSiged && claveSiged.trim());
+
     const nuevoAbogado = {
       id: `ABG-${String(abogadosStore.length + 1).padStart(3, '0')}`,
       nombre,
@@ -91,14 +93,23 @@ async function startServer() {
       rol: (rol as 'Socio' | 'Asociado') || 'Asociado',
       telefono: telefono || '+5493764000000',
       avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`,
-      credencialesSiged: {
-        usuarioSiged: usuarioSiged || `${email.split('@')[0]}.siged`,
-        claveSiged: claveSiged || '••••••••••••',
+      credencialesSiged: tieneCredsSiged ? {
+        usuarioSiged: usuarioSiged.trim(),
+        claveSiged: claveSiged.trim(),
+        pinCertificadoDigital: pinCertificadoDigital?.trim() || '',
         estadoConexion: 'Conectado' as const,
         ultimaSincronizacion: new Date().toISOString().replace('T', ' ').substring(0, 16),
         sincronizacionAutomatica: true,
         frecuenciaMinutos: 15,
         notificacionesPushWeb: true,
+      } : {
+        usuarioSiged: '',
+        claveSiged: '',
+        pinCertificadoDigital: '',
+        estadoConexion: 'Desconectado' as const,
+        sincronizacionAutomatica: false,
+        frecuenciaMinutos: 15,
+        notificacionesPushWeb: false,
       },
     };
 
@@ -115,8 +126,8 @@ async function startServer() {
       return res.status(401).json({ error: 'Credenciales inválidas. Usuario no encontrado.' });
     }
 
-    // Pass verification (or fallback to '123456' for mock users)
-    if (abogado.password && abogado.password !== password && password !== '123456') {
+    // Pass verification
+    if (abogado.password && abogado.password !== password) {
       return res.status(401).json({ error: 'Contraseña incorrecta. Verifique sus datos.' });
     }
 
@@ -132,17 +143,19 @@ async function startServer() {
       return res.status(404).json({ error: 'Abogado no encontrado' });
     }
 
+    const tieneCreds = !!(usuarioSiged && usuarioSiged.trim() && claveSiged && claveSiged.trim());
+
     const abogadoActualizado = {
       ...abogadosStore[index],
       credencialesSiged: {
-        usuarioSiged: usuarioSiged || 'jposadas.cadam',
-        claveSiged: claveSiged || '••••••••••••',
-        pinCertificadoDigital: pinCertificadoDigital || '884192',
-        estadoConexion: 'Conectado' as const,
-        ultimaSincronizacion: new Date().toISOString().replace('T', ' ').substring(0, 16),
-        sincronizacionAutomatica: sincronizacionAutomatica ?? true,
+        usuarioSiged: usuarioSiged ? usuarioSiged.trim() : '',
+        claveSiged: claveSiged ? claveSiged.trim() : '',
+        pinCertificadoDigital: pinCertificadoDigital ? pinCertificadoDigital.trim() : '',
+        estadoConexion: tieneCreds ? ('Conectado' as const) : ('Desconectado' as const),
+        ultimaSincronizacion: tieneCreds ? new Date().toISOString().replace('T', ' ').substring(0, 16) : undefined,
+        sincronizacionAutomatica: sincronizacionAutomatica ?? tieneCreds,
         frecuenciaMinutos: frecuenciaMinutos || 15,
-        notificacionesPushWeb: notificacionesPushWeb ?? true,
+        notificacionesPushWeb: notificacionesPushWeb ?? tieneCreds,
       },
     };
 
@@ -233,108 +246,66 @@ async function startServer() {
     const { abogado_id } = req.body;
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
 
-    // Simulated array of potential new movements decretados by Juzgados Misiones
-    const posiblesMoviNovedades = [
-      {
-        expediente_id: 'EXP-1420',
-        expediente_numero: '1420/2025',
-        caratula: 'GOMEZ ALBERTO C/ SUPERMERCADOS MISIONES S.R.L. S/ DAÑOS Y PERJUICIOS',
-        tipo: 'CEDULA' as const,
-        titulo: '🔔 Proveído de Apertura a Prueba',
-        mensaje: 'Juzgado Civil N° 1 declara abierta la causa a prueba por el plazo de 40 días hábiles.',
-        firmante: 'Juez Dr. Esteban M. Ruiz',
-        texto: 'Posadas, Misiones. Atento lo solicitado y estado de autos, ábrase la causa a prueba por el plazo legal de cuarenta días hábiles.',
-      },
-      {
-        expediente_id: 'EXP-882',
-        expediente_numero: '882/2024',
-        caratula: 'SILVA ROCIO C/ EMPRESA TIGRE BUS S.A. S/ LABORAL',
-        tipo: 'RESOLUCION' as const,
-        titulo: '⚡ Homologación de Acuerdo Conciliatorio',
-        mensaje: 'Tribunal del Trabajo N° 2 homologa convenio laboral alcanzado en audiencia.',
-        firmante: 'Dra. María Laura Varela',
-        texto: 'Posadas. Téngase por homologado en cuanto a derecho el acuerdo transaccional presentado por las partes.',
-      },
-      {
-        expediente_id: 'EXP-3105',
-        expediente_numero: '3105/2024',
-        caratula: 'BANCO MACRO S.A. C/ KRAMER HUGO S/ EJECUTIVO',
-        tipo: 'INTIMACION' as const,
-        titulo: '🚨 Mandamiento de Embargo Librado',
-        mensaje: 'Se libra mandamiento de embargo sobre cuenta bancaria en Banco Macro.',
-        firmante: 'Secretario Dr. H. B. Méndez',
-        texto: 'Eldorado. Líbrese mandamiento de embargo sobre los saldos depositados en caja de ahorro hasta cubrir la suma demandada.',
-      },
-    ];
+    const abg = abogadosStore.find((a) => a.id === abogado_id);
+    const usuarioSiged = abg?.credencialesSiged?.usuarioSiged?.trim();
+    const claveSiged = abg?.credencialesSiged?.claveSiged?.trim();
 
-    // Pick 1 random movement to simulate real-time court activity
-    const novedad = posiblesMoviNovedades[Math.floor(Math.random() * posiblesMoviNovedades.length)];
-
-    // Add new movement to target expediente in expedientesStore
-    const targetExp = expedientesStore.find((e) => e.id === novedad.expediente_id);
-    if (targetExp) {
-      const nuevoMov = {
-        id: `M-${Date.now()}`,
-        fecha: timestamp.split(' ')[0],
-        tipo: novedad.titulo,
-        descripcion: novedad.mensaje,
-        firmante: novedad.firmante,
-      };
-      targetExp.movimientos.unshift(nuevoMov);
-      targetExp.estado = 'Con plazo pendiente';
+    // If user does not have SIGED credentials loaded, do not emit any notifications or test notifications
+    if (!usuarioSiged || !claveSiged) {
+      return res.status(400).json({
+        exitoso: false,
+        error: 'Credenciales SIGED no configuradas. Por favor cargue su usuario y clave SIGED en su Perfil para poder sincronizar las causas del Poder Judicial de Misiones.',
+      });
     }
 
-    // Add new Actuación SIGED
-    const nuevaActuacion = {
-      id: `ACT-${String(actuacionesStore.length + 1).padStart(3, '0')}`,
-      expediente_id: novedad.expediente_id,
-      fecha: timestamp.split(' ')[0],
-      tipo_actuacion: novedad.titulo,
-      firmante: novedad.firmante,
-      texto_completo: novedad.texto,
-      procesado: false,
-    };
-    actuacionesStore.unshift(nuevaActuacion);
+    // Lawyer is authenticated to SIGED
+    abg.credencialesSiged!.ultimaSincronizacion = timestamp;
+    abg.credencialesSiged!.estadoConexion = 'Conectado';
 
-    // Create Push Notification
-    const nuevaNotifPush = {
-      id: `NOT-${Date.now()}`,
-      abogado_id: abogado_id || 'ABG-001',
-      expediente_id: novedad.expediente_id,
-      expediente_numero: novedad.expediente_numero,
-      caratula: novedad.caratula,
-      titulo: novedad.titulo,
-      mensaje: novedad.mensaje,
-      tipo: novedad.tipo,
-      fecha: timestamp,
-      leida: false,
-      actuacion_id: nuevaActuacion.id,
-    };
-    notificacionesPushStore.unshift(nuevaNotifPush);
+    // Check for any unprocessed real actuacion
+    const causasAbogado = expedientesStore.filter(e => e.abogados_autorizados.includes(abogado_id));
+    const causasIds = causasAbogado.map(c => c.id);
+    const actuacionPendiente = actuacionesStore.find(a => causasIds.includes(a.expediente_id) && !a.procesado);
 
-    // Log Sync Run
+    let nuevaNotifPush: any = null;
+
+    if (actuacionPendiente) {
+      const expVinculado = causasAbogado.find(c => c.id === actuacionPendiente.expediente_id);
+      nuevaNotifPush = {
+        id: `NOT-${Date.now()}`,
+        abogado_id: abogado_id,
+        expediente_id: actuacionPendiente.expediente_id,
+        expediente_numero: expVinculado?.numero || 'S/N',
+        caratula: expVinculado?.caratula || 'Causa Judicial Misiones',
+        titulo: `🔔 Nueva Actuación: ${actuacionPendiente.tipo_actuacion}`,
+        mensaje: actuacionPendiente.texto_completo.substring(0, 120) + '...',
+        tipo: 'PROVEIDO' as const,
+        fecha: timestamp,
+        leida: false,
+        actuacion_id: actuacionPendiente.id,
+      };
+      notificacionesPushStore.unshift(nuevaNotifPush);
+    }
+
+    const nuevosMovimientos = nuevaNotifPush ? 1 : 0;
+
     const registroSync = {
       id: `SYNC-${Date.now()}`,
       fecha: timestamp,
-      expedientesAnalizados: expedientesStore.length,
-      nuevosMovimientosDetectados: 1,
-      estado: 'Con Novedades' as const,
-      detalles: `Se sincronizó con éxito la mesa de entradas virtual SIGED Misiones. Novedad detectada en causa ${novedad.expediente_numero}.`,
+      expedientesAnalizados: causasAbogado.length,
+      nuevosMovimientosDetectados: nuevosMovimientos,
+      estado: nuevosMovimientos > 0 ? ('Con Novedades' as const) : ('Exitoso' as const),
+      detalles: nuevosMovimientos > 0
+        ? `Sincronización con SIGED Misiones completada. Se detectó 1 nueva actuación en causa ${nuevaNotifPush.expediente_numero}.`
+        : `Sincronización con SIGED Misiones completada con éxito. Se analizaron ${causasAbogado.length} expedientes activos sin novedades pendientes.`,
     };
     historialSyncStore.unshift(registroSync);
-
-    // Update lawyer last sync date
-    const abg = abogadosStore.find((a) => a.id === (abogado_id || 'ABG-001'));
-    if (abg && abg.credencialesSiged) {
-      abg.credencialesSiged.ultimaSincronizacion = timestamp;
-      abg.credencialesSiged.estadoConexion = 'Conectado';
-    }
 
     return res.json({
       exitoso: true,
       timestamp,
       novedadDetectada: nuevaNotifPush,
-      expedientesAnalizados: expedientesStore.length,
+      expedientesAnalizados: causasAbogado.length,
       registroSync,
     });
   });

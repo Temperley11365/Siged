@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { 
   Key, ShieldCheck, UserCheck, RefreshCw, Bell, Lock, Globe, CheckCircle2, AlertTriangle, 
-  Settings, Clock, Sparkles, Send, Zap, ChevronRight, Activity, Cpu
+  Settings, Clock, Sparkles, Send, Zap, ChevronRight, Activity, Cpu, Database, Download,
+  HardDrive, FileJson, Shield, Check, Info, FileText
 } from 'lucide-react';
-import { Abogado, CredencialesSIGED, RegistroSincronizacionSiged } from '../types';
+import { 
+  Abogado, CredencialesSIGED, RegistroSincronizacionSiged, 
+  Expediente, ActuacionSIGED, PruebaExpediente, AudienciaExpediente, 
+  TareaEstudio, DocumentoEstudio, DiaInhabil 
+} from '../types';
 import { 
   getPushPermissionStatus, 
   requestPushPermission, 
@@ -18,6 +23,13 @@ interface PerfilCredencialesModalProps {
   onSincronizarManual: () => Promise<void>;
   historialSync: RegistroSincronizacionSiged[];
   isSyncing: boolean;
+  expedientes?: Expediente[];
+  actuaciones?: ActuacionSIGED[];
+  pruebas?: PruebaExpediente[];
+  audiencias?: AudienciaExpediente[];
+  tareas?: TareaEstudio[];
+  documentos?: DocumentoEstudio[];
+  diasInhabiles?: DiaInhabil[];
 }
 
 export const PerfilCredencialesModal: React.FC<PerfilCredencialesModalProps> = ({
@@ -28,27 +40,35 @@ export const PerfilCredencialesModal: React.FC<PerfilCredencialesModalProps> = (
   onSincronizarManual,
   historialSync,
   isSyncing,
+  expedientes = [],
+  actuaciones = [],
+  pruebas = [],
+  audiencias = [],
+  tareas = [],
+  documentos = [],
+  diasInhabiles = [],
 }) => {
-  const [activeTab, setActiveTab] = useState<'credenciales' | 'notificaciones' | 'historial'>('credenciales');
+  const [activeTab, setActiveTab] = useState<'credenciales' | 'notificaciones' | 'historial' | 'resguardo'>('credenciales');
+  const [descargaExitosa, setDescargaExitosa] = useState<string | null>(null);
   
   // Credentials Form State
   const initialCreds = abogadoActual.credencialesSiged || {
-    usuarioSiged: 'jposadas.cadam',
-    claveSiged: '••••••••••••',
-    pinCertificadoDigital: '884192',
-    estadoConexion: 'Conectado',
-    ultimaSincronizacion: new Date().toISOString().replace('T', ' ').substring(0, 16),
-    sincronizacionAutomatica: true,
+    usuarioSiged: '',
+    claveSiged: '',
+    pinCertificadoDigital: '',
+    estadoConexion: 'Desconectado',
+    ultimaSincronizacion: undefined,
+    sincronizacionAutomatica: false,
     frecuenciaMinutos: 15,
-    notificacionesPushWeb: true,
+    notificacionesPushWeb: false,
   };
 
-  const [usuarioSiged, setUsuarioSiged] = useState(initialCreds.usuarioSiged);
-  const [claveSiged, setClaveSiged] = useState(initialCreds.claveSiged);
+  const [usuarioSiged, setUsuarioSiged] = useState(initialCreds.usuarioSiged || '');
+  const [claveSiged, setClaveSiged] = useState(initialCreds.claveSiged || '');
   const [pinCertificado, setPinCertificado] = useState(initialCreds.pinCertificadoDigital || '');
-  const [sincronizacionAuto, setSincronizacionAuto] = useState(initialCreds.sincronizacionAutomatica);
-  const [frecuencia, setFrecuencia] = useState<number>(initialCreds.frecuenciaMinutos);
-  const [pushHabilitadas, setPushHabilitadas] = useState(initialCreds.notificacionesPushWeb);
+  const [sincronizacionAuto, setSincronizacionAuto] = useState(initialCreds.sincronizacionAutomatica || false);
+  const [frecuencia, setFrecuencia] = useState<number>(initialCreds.frecuenciaMinutos || 15);
+  const [pushHabilitadas, setPushHabilitadas] = useState(initialCreds.notificacionesPushWeb || false);
 
   const [isTestingConn, setIsTestingConn] = useState(false);
   const [testResult, setTestResult] = useState<{ exito: boolean; mensaje: string } | null>(null);
@@ -74,6 +94,91 @@ export const PerfilCredencialesModal: React.FC<PerfilCredencialesModalProps> = (
         });
       }
     }, 900);
+  };
+
+  const handleDescargarBackupJSON = (tipo: 'completo' | 'solo_expedientes') => {
+    const timestamp = new Date().toISOString();
+    const fechaLegible = new Date().toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+
+    const payload = tipo === 'completo' ? {
+      _metadatos_seguridad: {
+        titulo: 'Copia de Seguridad y Resguardo Integral - Kairós Estudio Jurídico',
+        tipo_backup: 'BASE_DE_DATOS_COMPLETA',
+        exportado_por: {
+          nombre: abogadoActual.nombre,
+          matricula: abogadoActual.matricula,
+          email: abogadoActual.email,
+          rol: abogadoActual.rol,
+        },
+        fecha_generacion_iso: timestamp,
+        fecha_generacion_local: fechaLegible,
+        version_sistema: 'Kairós Legal v2.5 - SIGED Misiones',
+        resumen_registros: {
+          total_expedientes: expedientes.length,
+          total_actuaciones: actuaciones.length,
+          total_audiencias: audiencias.length,
+          total_pruebas: pruebas.length,
+          total_tareas: tareas.length,
+          total_documentos: documentos.length,
+          total_dias_inhabiles: diasInhabiles.length,
+        }
+      },
+      expedientes: expedientes,
+      actuaciones: actuaciones,
+      audiencias: audiencias,
+      pruebas: pruebas,
+      tareas: tareas,
+      documentos: documentos,
+      dias_inhabiles_personalizados: diasInhabiles,
+      historial_sincronizaciones_siged: historialSync,
+    } : {
+      _metadatos_seguridad: {
+        titulo: 'Resguardo Específico de Expedientes y Actuaciones Procesales',
+        tipo_backup: 'EXPEDIENTES_Y_ACTUACIONES',
+        exportado_por: {
+          nombre: abogadoActual.nombre,
+          matricula: abogadoActual.matricula,
+          email: abogadoActual.email,
+        },
+        fecha_generacion_iso: timestamp,
+        fecha_generacion_local: fechaLegible,
+        version_sistema: 'Kairós Legal v2.5',
+        total_expedientes: expedientes.length,
+        total_actuaciones: actuaciones.length,
+      },
+      expedientes: expedientes,
+      actuaciones: actuaciones,
+    };
+
+    const jsonString = JSON.stringify(payload, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const sanitizedName = abogadoActual.nombre.replace(/\s+/g, '_').toLowerCase();
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.download = tipo === 'completo' 
+      ? `backup_kairos_${sanitizedName}_db_completa_${dateStr}.json`
+      : `backup_kairos_${sanitizedName}_expedientes_actuaciones_${dateStr}.json`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setDescargaExitosa(
+      tipo === 'completo' 
+        ? `¡Base de datos completa (${expedientes.length} expedientes y ${actuaciones.length} actuaciones) descargada exitosamente en formato JSON!`
+        : `¡Resguardo de ${expedientes.length} expedientes y ${actuaciones.length} actuaciones descargado en JSON!`
+    );
+    setTimeout(() => setDescargaExitosa(null), 4500);
   };
 
   const handleSolicitarPermisoPushNavegador = async () => {
@@ -177,6 +282,18 @@ export const PerfilCredencialesModal: React.FC<PerfilCredencialesModalProps> = (
           >
             <Activity className="w-3.5 h-3.5" />
             <span>Historial Sincronización</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('resguardo')}
+            className={`pb-2.5 font-bold transition-colors border-b-2 flex items-center space-x-2 ${
+              activeTab === 'resguardo'
+                ? 'border-emerald-500 text-emerald-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Resguardo & Backup (JSON)</span>
           </button>
         </div>
 
@@ -443,6 +560,131 @@ export const PerfilCredencialesModal: React.FC<PerfilCredencialesModalProps> = (
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: RESGUARDO & LOCAL DATABASE BACKUP */}
+          {activeTab === 'resguardo' && (
+            <div className="space-y-4 font-mono">
+              {/* Info Card */}
+              <div className="bg-slate-950/90 p-4 rounded-xl border border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-200 uppercase flex items-center space-x-2">
+                    <Shield className="w-4 h-4 text-emerald-400" />
+                    <span>Resguardo Local & Copia de Seguridad Offline</span>
+                  </span>
+                  <span className="text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 px-2 py-0.5 rounded font-bold uppercase">
+                    100% Privado & Seguro
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
+                  Genere y descargue un archivo estructurado en formato <strong>JSON</strong> con la totalidad de sus expedientes judiciales, actuaciones procesales, audiencias, pruebas y tareas. Este archivo puede ser almacenado en su disco local, pendrive o bóveda cifrada para fines de auditoría y resguardo ante cualquier eventualidad.
+                </p>
+              </div>
+
+              {/* Database Statistics Summary */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-xs">
+                  <span className="text-slate-300 font-bold uppercase text-[10px] flex items-center space-x-1.5">
+                    <Database className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Contenido de la Base de Datos a Exportar</span>
+                  </span>
+                  <span className="text-slate-500 text-[10px]">Titular: {abogadoActual.nombre}</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                  <div className="p-2.5 bg-slate-900/90 rounded-lg border border-slate-800">
+                    <span className="text-slate-500 text-[10px] block">Expedientes</span>
+                    <strong className="text-slate-100 text-sm font-bold">{expedientes.length} Causas</strong>
+                  </div>
+
+                  <div className="p-2.5 bg-slate-900/90 rounded-lg border border-slate-800">
+                    <span className="text-slate-500 text-[10px] block">Actuaciones / Decretos</span>
+                    <strong className="text-blue-400 text-sm font-bold">{actuaciones.length} Registros</strong>
+                  </div>
+
+                  <div className="p-2.5 bg-slate-900/90 rounded-lg border border-slate-800">
+                    <span className="text-slate-500 text-[10px] block">Audiencias Agendadas</span>
+                    <strong className="text-emerald-400 text-sm font-bold">{audiencias.length} Fijadas</strong>
+                  </div>
+
+                  <div className="p-2.5 bg-slate-900/90 rounded-lg border border-slate-800">
+                    <span className="text-slate-500 text-[10px] block">Pruebas / Oficios</span>
+                    <strong className="text-purple-400 text-sm font-bold">{pruebas.length} Medios</strong>
+                  </div>
+
+                  <div className="p-2.5 bg-slate-900/90 rounded-lg border border-slate-800">
+                    <span className="text-slate-500 text-[10px] block">Tareas / Plazos</span>
+                    <strong className="text-amber-400 text-sm font-bold">{tareas.length} Tareas</strong>
+                  </div>
+
+                  <div className="p-2.5 bg-slate-900/90 rounded-lg border border-slate-800">
+                    <span className="text-slate-500 text-[10px] block">Documentos & Escritos</span>
+                    <strong className="text-teal-400 text-sm font-bold">{documentos.length} Archivos</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Download Notification Alert */}
+              {descargaExitosa && (
+                <div className="p-3 bg-emerald-950/80 border border-emerald-500/60 rounded-xl text-emerald-300 text-xs font-mono flex items-center space-x-2 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{descargaExitosa}</span>
+                </div>
+              )}
+
+              {/* Download Buttons */}
+              <div className="space-y-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleDescargarBackupJSON('completo')}
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-mono text-xs font-bold flex items-center justify-between shadow-lg shadow-emerald-950/50 transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-1.5 bg-emerald-700/80 rounded-lg group-hover:bg-emerald-600 transition-colors">
+                      <Download className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <strong className="block text-xs font-bold">Descargar Base de Datos Completa (.JSON)</strong>
+                      <span className="text-[10px] text-emerald-200 font-normal">
+                        Expedientes, actuaciones, audiencias, pruebas, tareas y documentos
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] bg-emerald-800/80 px-2 py-1 rounded font-bold uppercase shrink-0">
+                    Resguardo Total
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDescargarBackupJSON('solo_expedientes')}
+                  className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl font-mono text-xs font-bold flex items-center justify-between transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-1.5 bg-slate-900 rounded-lg group-hover:bg-slate-800 transition-colors">
+                      <FileJson className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div className="text-left">
+                      <strong className="block text-xs font-bold text-slate-200">Descargar Solo Expedientes y Actuaciones (.JSON)</strong>
+                      <span className="text-[10px] text-slate-400 font-normal">
+                        Carátulas, números de causa, juzgados e historial de movimientos procesales
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] bg-slate-900 text-slate-400 px-2 py-1 rounded font-bold uppercase shrink-0 border border-slate-800">
+                    Causas & Decretos
+                  </span>
+                </button>
+              </div>
+
+              {/* Security Footer Note */}
+              <div className="text-[10px] text-slate-500 leading-relaxed font-sans pt-2 border-t border-slate-800/80 flex items-start space-x-1.5">
+                <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                <span>
+                  La descarga se efectúa directamente en el navegador sin transmitir sus datos a servidores de terceros, garantizando el secreto profesional y la soberanía informática de su estudio jurídico.
+                </span>
               </div>
             </div>
           )}

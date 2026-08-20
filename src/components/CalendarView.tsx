@@ -1,27 +1,38 @@
 import React, { useState } from 'react';
 import { HOLIDAYS_MISIONES_2026, calcularVencimientoMisiones, isHabilJudicial, formatFechaEsp } from '../lib/misionesCalendar';
-import { Calendar, Clock, AlertTriangle, CheckCircle2, Info, Sparkles, Plus, Trash2, ShieldAlert } from 'lucide-react';
-import { DiaInhabil, AudienciaExpediente, TareaEstudio } from '../types';
+import { Calendar, Clock, AlertTriangle, CheckCircle2, Info, Sparkles, Plus, Trash2, ShieldAlert, X, Eye, FileText, CheckSquare, Square, ChevronRight, User, Scale } from 'lucide-react';
+import { DiaInhabil, AudienciaExpediente, TareaEstudio, Expediente } from '../types';
+import { FichaExpedienteModal } from './FichaExpedienteModal';
 
 interface CalendarViewProps {
   diasInhabiles: DiaInhabil[];
   audiencias: AudienciaExpediente[];
   tareas: TareaEstudio[];
+  expedientes?: Expediente[];
   onAgregarDiaInhabil: (dia: DiaInhabil) => void;
   onEliminarDiaInhabil: (id: string) => void;
+  onActualizarEstadoTarea?: (id: string, nuevoEstado: 'Pendiente' | 'En Progreso' | 'Completada' | 'Cancelada') => void;
+  onSelectTab?: (tab: string) => void;
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
   diasInhabiles,
   audiencias,
   tareas,
+  expedientes = [],
   onAgregarDiaInhabil,
   onEliminarDiaInhabil,
+  onActualizarEstadoTarea,
+  onSelectTab,
 }) => {
-  const [vista, setVista] = useState<'calculador' | 'mes' | 'semana' | 'ferias'>('calculador');
+  const [vista, setVista] = useState<'calculador' | 'mes' | 'semana' | 'ferias'>('mes');
   const [fechaNotif, setFechaNotif] = useState(new Date().toISOString().split('T')[0]);
   const [plazoDias, setPlazoDias] = useState<number>(5);
   const [tipoPlazo, setTipoPlazo] = useState<'hábiles' | 'corridos'>('hábiles');
+
+  // Selected Day Modal State
+  const [diaSeleccionadoStr, setDiaSeleccionadoStr] = useState<string | null>(null);
+  const [expedienteParaVer, setExpedienteParaVer] = useState<Expediente | null>(null);
 
   // Modal Custom Dia Inhabil
   const [isModalInhabilOpen, setIsModalInhabilOpen] = useState(false);
@@ -49,6 +60,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setMotivoInhabil('');
   };
 
+  // Selected Day computed items
+  const audienciasDelDia = diaSeleccionadoStr 
+    ? audiencias.filter((a) => a.fecha_hora.startsWith(diaSeleccionadoStr))
+    : [];
+
+  const tareasDelDia = diaSeleccionadoStr
+    ? tareas.filter((t) => t.fecha_vencimiento === diaSeleccionadoStr)
+    : [];
+
+  const inhabilDelDia = diaSeleccionadoStr
+    ? diasInhabiles.find((d) => d.fecha === diaSeleccionadoStr)
+    : null;
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -57,22 +81,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           <div>
             <h2 className="text-lg font-bold tracking-tight uppercase text-slate-100 flex items-center space-x-2">
               <Calendar className="w-5 h-5 text-blue-500" />
-              <span>Agenda Judicial, Calculador de Plazos & Calendario Misiones</span>
+              <span>Agenda Judicial, Calendario de Causas & Calculador de Plazos</span>
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Código Procesal Civil y Comercial de Misiones (CPCCyM), Art. 124 (Plazo de Gracia) y Días Inhábiles Personalizados.
+              Haga clic en cualquier día de la cuadrícula mensual para ver las audiencias y tareas agendadas y acceder directamente al expediente.
             </p>
           </div>
 
           <div className="flex items-center space-x-2 bg-slate-950 p-1 rounded-lg border border-slate-800">
-            <button
-              onClick={() => setVista('calculador')}
-              className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors ${
-                vista === 'calculador' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Calculador Plazos
-            </button>
             <button
               onClick={() => setVista('mes')}
               className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors ${
@@ -80,6 +96,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               }`}
             >
               Vista Mensual
+            </button>
+            <button
+              onClick={() => setVista('calculador')}
+              className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors ${
+                vista === 'calculador' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Calculador Plazos
             </button>
             <button
               onClick={() => setVista('ferias')}
@@ -237,33 +261,257 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               const audsDia = audiencias.filter((a) => a.fecha_hora.startsWith(dateStr));
               const tareasDia = tareas.filter((t) => t.fecha_vencimiento === dateStr);
               const isWeekend = i % 7 === 5 || i % 7 === 6;
+              const isInhabil = diasInhabiles.some((d) => d.fecha === dateStr);
+              const tieneEventos = audsDia.length > 0 || tareasDia.length > 0;
+              const isSelected = diaSeleccionadoStr === dateStr;
 
               return (
-                <div
+                <button
                   key={diaNum}
-                  className={`min-h-[90px] p-2 rounded border text-left flex flex-col justify-between ${
-                    isWeekend ? 'bg-slate-950/40 border-slate-900 text-slate-600' : 'bg-slate-950 border-slate-800 text-slate-200'
+                  onClick={() => setDiaSeleccionadoStr(dateStr)}
+                  className={`min-h-[95px] p-2 rounded-lg border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                    isSelected
+                      ? 'ring-2 ring-blue-500 bg-blue-950/40 border-blue-600'
+                      : isWeekend
+                      ? 'bg-slate-950/40 border-slate-900 text-slate-600 hover:border-slate-700'
+                      : isInhabil
+                      ? 'bg-amber-950/20 border-amber-800/40 text-amber-300 hover:border-amber-600'
+                      : tieneEventos
+                      ? 'bg-slate-950 border-slate-700 hover:border-blue-500/60 shadow-sm'
+                      : 'bg-slate-950 border-slate-800 text-slate-200 hover:border-slate-700'
                   }`}
                 >
-                  <span className="font-bold text-xs">{diaNum}</span>
+                  <div className="flex items-center justify-between w-full">
+                    <span className={`font-bold text-xs ${isSelected ? 'text-blue-400' : isInhabil ? 'text-amber-400' : ''}`}>
+                      {diaNum}
+                    </span>
+                    {tieneEventos && (
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    )}
+                  </div>
 
-                  <div className="space-y-1">
-                    {audsDia.map((a) => (
-                      <span key={a.id} className="block text-[9px] bg-blue-900/40 text-blue-300 px-1 rounded truncate border border-blue-700/50">
+                  <div className="space-y-1 w-full mt-1">
+                    {audsDia.slice(0, 2).map((a) => (
+                      <span key={a.id} className="block text-[9px] bg-blue-900/50 text-blue-300 px-1 py-0.5 rounded truncate border border-blue-700/50 font-sans">
                         🏛️ {a.tipo}
                       </span>
                     ))}
-                    {tareasDia.map((t) => (
-                      <span key={t.id} className="block text-[9px] bg-amber-900/40 text-amber-300 px-1 rounded truncate border border-amber-700/50">
+                    {tareasDia.slice(0, 2).map((t) => (
+                      <span key={t.id} className="block text-[9px] bg-amber-900/50 text-amber-300 px-1 py-0.5 rounded truncate border border-amber-700/50 font-sans">
                         📋 {t.titulo}
                       </span>
                     ))}
+                    {audsDia.length + tareasDia.length > 4 && (
+                      <span className="text-[8px] text-slate-400 font-mono block">
+                        +{audsDia.length + tareasDia.length - 4} más...
+                      </span>
+                    )}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
+      )}
+
+      {/* MODAL DETALLE DE DÍA SELECCIONADO (AUDIENCIAS, TAREAS Y EXPEDIENTES) */}
+      {diaSeleccionadoStr && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-2xl w-full p-6 shadow-2xl space-y-5 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <span className="text-[10px] font-mono text-blue-400 font-bold uppercase tracking-widest block">Agenda Diaria Judicial</span>
+                <h3 className="text-base font-bold text-slate-100 uppercase">
+                  {formatFechaEsp(diaSeleccionadoStr)} ({diaSeleccionadoStr})
+                </h3>
+              </div>
+
+              <button
+                onClick={() => setDiaSeleccionadoStr(null)}
+                className="p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Inhábil Banner if any */}
+            {inhabilDelDia && (
+              <div className="p-3 bg-amber-950/60 border border-amber-600/50 rounded-lg text-amber-300 text-xs font-mono flex items-start space-x-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block font-bold">Día Inhábil ({inhabilDelDia.ambito}):</strong>
+                  <span>{inhabilDelDia.motivo || inhabilDelDia.descripcion}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Audiencias Section */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
+                <span className="flex items-center space-x-1.5">
+                  <Scale className="w-4 h-4 text-blue-400" />
+                  <span>Audiencias Programadas ({audienciasDelDia.length})</span>
+                </span>
+              </h4>
+
+              {audienciasDelDia.length === 0 ? (
+                <div className="p-4 bg-slate-950 rounded-lg border border-slate-800 text-center text-xs text-slate-500 font-mono">
+                  No hay audiencias fijadas para esta fecha.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {audienciasDelDia.map((aud) => {
+                    const exp = expedientes.find((e) => e.id === aud.expediente_id);
+                    return (
+                      <div
+                        key={aud.id}
+                        className="bg-slate-950 p-3.5 rounded-lg border border-slate-800 hover:border-slate-700 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2 py-0.5 bg-blue-900/60 border border-blue-600 text-blue-300 text-[10px] font-mono font-bold rounded">
+                              {aud.fecha_hora.split('T')[1] || '08:00'} HS
+                            </span>
+                            <strong className="text-slate-100 text-xs font-bold">{aud.tipo}</strong>
+                            <span className="text-[10px] text-slate-400 font-mono">({aud.modalidad})</span>
+                          </div>
+
+                          <p className="text-xs text-slate-300 font-medium">
+                            {exp ? `${exp.numero} - ${exp.caratula}` : aud.juzgado}
+                          </p>
+                          <p className="text-[10px] text-slate-500 font-mono">Juzgado: {aud.juzgado}</p>
+                        </div>
+
+                        {exp && (
+                          <button
+                            onClick={() => {
+                              setExpedienteParaVer(exp);
+                            }}
+                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-300 border border-slate-700 text-xs font-mono font-bold rounded flex items-center space-x-1.5 shrink-0"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Ver Expediente</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Tareas / Vencimientos Section */}
+            <div className="space-y-3 pt-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
+                <span className="flex items-center space-x-1.5">
+                  <CheckSquare className="w-4 h-4 text-emerald-400" />
+                  <span>Tareas & Vencimientos Procesales ({tareasDelDia.length})</span>
+                </span>
+              </h4>
+
+              {tareasDelDia.length === 0 ? (
+                <div className="p-4 bg-slate-950 rounded-lg border border-slate-800 text-center text-xs text-slate-500 font-mono">
+                  No hay tareas ni plazos judiciales que venzan en este día.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {tareasDelDia.map((t) => {
+                    const exp = expedientes.find((e) => e.id === t.expediente_id);
+                    const estaCompletada = t.estado === 'Completada';
+
+                    return (
+                      <div
+                        key={t.id}
+                        className={`bg-slate-950 p-3.5 rounded-lg border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          estaCompletada ? 'border-slate-800/60 opacity-60' : 'border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          {onActualizarEstadoTarea && (
+                            <button
+                              onClick={() => {
+                                const nuevo = estaCompletada ? 'Pendiente' : 'Completada';
+                                onActualizarEstadoTarea(t.id, nuevo);
+                              }}
+                              className="mt-0.5 text-slate-400 hover:text-emerald-400"
+                              title={estaCompletada ? 'Reabrir tarea' : 'Marcar como completada'}
+                            >
+                              {estaCompletada ? (
+                                <CheckSquare className="w-4 h-4 text-emerald-400" />
+                              ) : (
+                                <Square className="w-4 h-4 text-slate-500" />
+                              )}
+                            </button>
+                          )}
+
+                          <div className="space-y-1">
+                            <div className="flex items-center space-x-2 flex-wrap">
+                              <strong className={`text-xs ${estaCompletada ? 'line-through text-slate-400' : 'text-slate-100'}`}>
+                                {t.titulo}
+                              </strong>
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                                t.prioridad === 'Urgente'
+                                  ? 'bg-red-950 text-red-300 border border-red-800'
+                                  : t.prioridad === 'Alta'
+                                  ? 'bg-amber-950 text-amber-300 border border-amber-800'
+                                  : 'bg-slate-800 text-slate-300'
+                              }`}>
+                                {t.prioridad}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-400">
+                                {t.estado}
+                              </span>
+                            </div>
+
+                            {t.descripcion && (
+                              <p className="text-xs text-slate-400">{t.descripcion}</p>
+                            )}
+
+                            {exp && (
+                              <p className="text-[10px] text-blue-400 font-mono">
+                                Causa: {exp.numero} - {exp.caratula}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {exp && (
+                          <button
+                            onClick={() => {
+                              setExpedienteParaVer(exp);
+                            }}
+                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-300 border border-slate-700 text-xs font-mono font-bold rounded flex items-center space-x-1.5 shrink-0"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Ver Causa</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-800">
+              <button
+                onClick={() => setDiaSeleccionadoStr(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-mono font-bold text-xs uppercase"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ficha Completa del Expediente Modal */}
+      {expedienteParaVer && (
+        <FichaExpedienteModal
+          isOpen={!!expedienteParaVer}
+          onClose={() => setExpedienteParaVer(null)}
+          expediente={expedientes.find(e => e.id === expedienteParaVer.id) || expedienteParaVer}
+        />
       )}
 
       {/* VISTA FERIAS E INHABILES */}
