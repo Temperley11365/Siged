@@ -26,61 +26,20 @@ interface SigedProcessorProps {
   expedientes: Expediente[];
 }
 
-// Preset test actuations from SIGED Misiones
-const PRESET_ACTUACIONES = [
-  {
-    titulo: '1. Cédula de Traslado de Demanda (5 Días Hábiles)',
-    numeroExpte: '1420/2025',
-    caratula: 'GOMEZ ALBERTO C/ SUPERMERCADOS MISIONES S.R.L. S/ DAÑOS Y PERJUICIOS',
-    juzgado: 'Juzgado Civil y Comercial N° 1 - Posadas',
-    texto: `CEDULA DE NOTIFICACIÓN DIGITAL - PODER JUDICIAL DE MISIONES (SIGED)
-Juzgado de Primera Instancia Civil y Comercial N° 1 - Secretaría N° 2
-Expediente N° 1420/2025 - Carátula: GOMEZ ALBERTO C/ SUPERMERCADOS MISIONES S.R.L. S/ DAÑOS Y PERJUICIOS.
-
-Se notifica al letrado apoderado Dr. Juan Manuel Posadas (M.P. 4102) y letrada patrocinante Dra. María Elena Gómez (M.P. 5890) del traslado de la contestación de demanda presentada por la demandada con fecha 28/07/2026.
-Se otorga un plazo de CINCO (5) DÍAS HÁBILES judicial a las partes para manifestarse sobre la documental acompañada y solicitar las medidas probatorias suplementarias conforme el Art. 358 del CPCCyM de la Provincia de Misiones, bajo apercibimiento de ley. Quedan Uds. debidamente notificados.`,
-  },
-  {
-    titulo: '2. Resolución Interlocutoria - Intimación de Pago (3 Días Hábiles)',
-    numeroExpte: '3105/2025',
-    caratula: 'BANCO MACRO S.A. C/ KOWALSKI MARTIN S/ EJECUCION PRENDARIA',
-    juzgado: 'Juzgado Civil, Comercial y de Familia N° 1 - Oberá',
-    texto: `PODER JUDICIAL DE MISIONES - SIGED NOTIFICACIONES
-Juzgado Civil, Comercial y de Familia N° 1 - Oberá
-Expediente N° 3105/2025 - BANCO MACRO S.A. C/ KOWALSKI MARTIN S/ EJECUCION PRENDARIA.
-
-Oberá, Misiones, 02 de Agosto de 2026.
-AUTOS Y VISTOS: Por presentados, por parte y por constituido el domicilio legal y electrónico.
-RESUELVO: 1) Intimar al ejecutado Martin Kowalski para que en el plazo de TRES (3) DÍAS HÁBILES judiciales proceda a dar cumplimiento a la traba del embargo y depositar la suma reclamada de $4.500.000 con más la suma de $1.350.000 presupuestada provisoriamente para acrecidas. 2) Traslado por el término de TRES (3) DÍAS a la parte actora para que opte por el martillero de la lista. Notifíquese por Cédula Digital SIGED.`,
-  },
-  {
-    titulo: '3. Vista al Ministerio Público Fiscal (10 Días Hábiles)',
-    numeroExpte: '9941/2025',
-    caratula: 'FERREYRA PATRICIA C/ RUIZ MARCELO S/ DIVORCIO VINCULAR Y ALIMENTOS',
-    juzgado: 'Juzgado de Familia N° 2 - Eldorado',
-    texto: `PODER JUDICIAL DE MISIONES - VISTA FISCAL DIGITAL SIGED
-Juzgado de Familia N° 2 - Eldorado
-Expediente N° 9941/2025 - FERREYRA PATRICIA C/ RUIZ MARCELO S/ DIVORCIO VINCULAR Y ALIMENTOS.
-
-Eldorado, 29 de Julio de 2026.
-Cúmpleme correr VISTA a la letrada patrocinante de la parte actora Dra. María Elena Gómez de la propuesta regulatoria de cuota alimentaria formulada por la Asesoría de Menores. Confiérase traslado por el término de DIEZ (10) DÍAS HÁBILES procesales para formular alegaciones o conformidad. Notifíquese por cédula electrónica.`,
-  },
-  {
-    titulo: '4. Prueba de Seguridad: Causa no Autorizada (Para Asociado Ruiz)',
-    numeroExpte: '1420/2025', // Ruiz no está autorizado en 1420/2025
-    caratula: 'GOMEZ ALBERTO C/ SUPERMERCADOS MISIONES S.R.L. S/ DAÑOS Y PERJUICIOS',
-    juzgado: 'Juzgado Civil y Comercial N° 1 - Posadas',
-    texto: `CÉDULA DE NOTIFICACIÓN DIGITAL
-Expediente N° 1420/2025 - GOMEZ ALBERTO C/ SUPERMERCADOS MISIONES S.R.L.
-Notificación confidencial de sentencia de primera instancia dictada en los autos de referencia.`,
-  },
-];
+// Preset actuations definition (Empty by default for clean start)
+const PRESET_ACTUACIONES: {
+  titulo: string;
+  numeroExpte: string;
+  caratula: string;
+  juzgado: string;
+  texto: string;
+}[] = [];
 
 export const SigedProcessor: React.FC<SigedProcessorProps> = ({ abogadoActual, expedientes }) => {
-  const [textoActuacion, setTextoActuacion] = useState(PRESET_ACTUACIONES[0].texto);
-  const [expteNumero, setExpteNumero] = useState(PRESET_ACTUACIONES[0].numeroExpte);
-  const [caratula, setCaratula] = useState(PRESET_ACTUACIONES[0].caratula);
-  const [juzgado, setJuzgado] = useState(PRESET_ACTUACIONES[0].juzgado);
+  const [textoActuacion, setTextoActuacion] = useState('');
+  const [expteNumero, setExpteNumero] = useState('');
+  const [caratula, setCaratula] = useState('');
+  const [juzgado, setJuzgado] = useState('');
   const [fechaNotificacion, setFechaNotificacion] = useState(new Date().toISOString().split('T')[0]);
 
   const [loading, setLoading] = useState(false);
@@ -89,11 +48,17 @@ export const SigedProcessor: React.FC<SigedProcessorProps> = ({ abogadoActual, e
   const [copiadoWsp, setCopiadoWsp] = useState(false);
   const [pestanaVista, setPestanaVista] = useState<'visual' | 'json'>('visual');
 
-  const handleCargarPreset = (preset: typeof PRESET_ACTUACIONES[0]) => {
+  const handleCargarPreset = (preset: { titulo: string; numeroExpte: string; caratula: string; juzgado: string; texto: string }) => {
     setTextoActuacion(preset.texto);
     setExpteNumero(preset.numeroExpte);
     setCaratula(preset.caratula);
     setJuzgado(preset.juzgado);
+  };
+
+  const handleSeleccionarExpediente = (expte: Expediente) => {
+    setExpteNumero(expte.numero);
+    setCaratula(expte.caratula);
+    setJuzgado(expte.juzgado);
   };
 
   const handleProcesar = async () => {
@@ -294,27 +259,50 @@ export const SigedProcessor: React.FC<SigedProcessorProps> = ({ abogadoActual, e
               <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">CPCCyM Misiones</span>
             </div>
 
-            {/* Presets quick load */}
-            <div>
-              <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1.5 tracking-wider">
-                Cargar Actuación Tipo de Misiones:
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {PRESET_ACTUACIONES.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleCargarPreset(preset)}
-                    className="text-left px-3 py-2 text-xs bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded text-slate-300 transition-colors flex items-center justify-between group"
-                  >
-                    <span className="truncate pr-2 font-medium">{preset.titulo}</span>
-                    <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 shrink-0">
-                      Cargar
-                    </span>
-                  </button>
-                ))}
+            {/* Expedientes select or Presets quick load */}
+            {expedientes.length > 0 ? (
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1.5 tracking-wider">
+                  Cargar datos desde Expediente Activo:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {expedientes.slice(0, 4).map((exp) => (
+                    <button
+                      key={exp.id}
+                      type="button"
+                      onClick={() => handleSeleccionarExpediente(exp)}
+                      className="text-left px-3 py-2 text-xs bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded text-slate-300 transition-colors flex items-center justify-between group"
+                    >
+                      <span className="truncate pr-2 font-medium">Exp. {exp.numero} - {exp.caratula.substring(0, 24)}...</span>
+                      <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 shrink-0">
+                        Cargar
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : PRESET_ACTUACIONES.length > 0 ? (
+              <div>
+                <label className="block text-[11px] font-mono uppercase text-slate-400 mb-1.5 tracking-wider">
+                  Cargar Actuación Tipo de Misiones:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {PRESET_ACTUACIONES.map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleCargarPreset(preset)}
+                      className="text-left px-3 py-2 text-xs bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded text-slate-300 transition-colors flex items-center justify-between group"
+                    >
+                      <span className="truncate pr-2 font-medium">{preset.titulo}</span>
+                      <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 shrink-0">
+                        Cargar
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             {/* Form Metadata Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

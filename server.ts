@@ -173,6 +173,21 @@ async function startServer() {
     return res.json(permitidos);
   });
 
+  // Crear nuevo expediente en el backend
+  app.post('/api/expedientes', (req, res) => {
+    const nuevo = req.body;
+    if (!nuevo || !nuevo.id) {
+      return res.status(400).json({ error: 'Datos de expediente inválidos' });
+    }
+    const idx = expedientesStore.findIndex(e => e.id === nuevo.id);
+    if (idx >= 0) {
+      expedientesStore[idx] = nuevo;
+    } else {
+      expedientesStore.unshift(nuevo);
+    }
+    return res.status(201).json(nuevo);
+  });
+
   // Actualizar asignación de abogados autorizados en un expediente
   app.post('/api/expedientes/autorizaciones', (req, res) => {
     const { expediente_id, abogados_autorizados } = req.body;

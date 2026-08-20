@@ -89,21 +89,120 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<TabId>('motor');
 
-  // Stores
-  const [expedientes, setExpedientes] = useState<Expediente[]>(INITIAL_EXPEDIENTES);
-  const [actuaciones, setActuaciones] = useState<ActuacionSIGED[]>(INITIAL_ACTUACIONES);
-  const [pruebas, setPruebas] = useState<PruebaExpediente[]>(INITIAL_PRUEBAS);
-  const [audiencias, setAudiencias] = useState<AudienciaExpediente[]>(INITIAL_AUDIENCIAS);
-  const [tareas, setTareas] = useState<TareaEstudio[]>(INITIAL_TAREAS);
-  const [diasInhabiles, setDiasInhabiles] = useState<DiaInhabil[]>(INITIAL_DIAS_INHABILES);
-  const [documentos, setDocumentos] = useState<DocumentoEstudio[]>(INITIAL_DOCUMENTOS);
+  // Stores with LocalStorage Persistence
+  const [expedientes, setExpedientes] = useState<Expediente[]>(() => {
+    const saved = localStorage.getItem('kairos_expedientes');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_EXPEDIENTES;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kairos_expedientes', JSON.stringify(expedientes));
+  }, [expedientes]);
+
+  const [actuaciones, setActuaciones] = useState<ActuacionSIGED[]>(() => {
+    const saved = localStorage.getItem('kairos_actuaciones');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_ACTUACIONES;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kairos_actuaciones', JSON.stringify(actuaciones));
+  }, [actuaciones]);
+
+  const [pruebas, setPruebas] = useState<PruebaExpediente[]>(() => {
+    const saved = localStorage.getItem('kairos_pruebas');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_PRUEBAS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kairos_pruebas', JSON.stringify(pruebas));
+  }, [pruebas]);
+
+  const [audiencias, setAudiencias] = useState<AudienciaExpediente[]>(() => {
+    const saved = localStorage.getItem('kairos_audiencias');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_AUDIENCIAS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kairos_audiencias', JSON.stringify(audiencias));
+  }, [audiencias]);
+
+  const [tareas, setTareas] = useState<TareaEstudio[]>(() => {
+    const saved = localStorage.getItem('kairos_tareas');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_TAREAS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kairos_tareas', JSON.stringify(tareas));
+  }, [tareas]);
+
+  const [diasInhabiles, setDiasInhabiles] = useState<DiaInhabil[]>(() => {
+    const saved = localStorage.getItem('kairos_dias_inhabiles');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_DIAS_INHABILES;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kairos_dias_inhabiles', JSON.stringify(diasInhabiles));
+  }, [diasInhabiles]);
+
+  const [documentos, setDocumentos] = useState<DocumentoEstudio[]>(() => {
+    const saved = localStorage.getItem('kairos_documentos');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_DOCUMENTOS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('kairos_documentos', JSON.stringify(documentos));
+  }, [documentos]);
+
   const [plantillas] = useState<PlantillaDocx[]>(INITIAL_PLANTILLAS_DOCX);
+
   const [modelosRepositorio, setModelosRepositorio] = useState<ModeloEscritoRepositorio[]>(() => {
     const saved = localStorage.getItem('siged_modelos_repositorio');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error('Error al cargar modelos del localStorage:', e);
       }
@@ -138,7 +237,7 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error('Error al cargar trámites de portales del localStorage:', e);
       }
@@ -156,7 +255,7 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error('Error al cargar alertas programables del localStorage:', e);
       }
@@ -564,8 +663,17 @@ export default function App() {
     setActiveTab('motor');
   };
 
-  const handleCrearNuevoExpediente = (nuevoExp: Expediente) => {
+  const handleCrearNuevoExpediente = async (nuevoExp: Expediente) => {
     setExpedientes((prev) => [nuevoExp, ...prev]);
+    try {
+      await fetch('/api/expedientes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevoExp),
+      });
+    } catch (err) {
+      console.log('Error sincronizando nuevo expediente con backend:', err);
+    }
   };
 
   // Handlers Pruebas
